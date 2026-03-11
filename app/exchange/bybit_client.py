@@ -6,6 +6,7 @@ Uses pybit v5 unified trading API.
 """
 
 import logging
+import math
 from typing import Optional, List, Dict, Any
 
 from pybit.unified_trading import HTTP
@@ -63,6 +64,35 @@ class BybitClient:
             self._fail(f"set_leverage {symbol}", exc)
             return False
 
+    def get_qty_step(self, symbol: str) -> float:
+        """
+        Fetch the minimum qty step for a symbol from Bybit instrument info.
+        E.g. NEOUSDT = 1.0, BTCUSDT = 0.001, AXLUSDT = 0.1
+        Result is cached in memory for the lifetime of this client instance.
+        """
+        if not hasattr(self, "_qty_step_cache"):
+            self._qty_step_cache = {}
+        if symbol in self._qty_step_cache:
+            return self._qty_step_cache[symbol]
+        try:
+            resp = self._session.get_instruments_info(category="linear", symbol=symbol)
+            info = resp.get("result", {}).get("list", [{}])[0]
+            step = float(info.get("lotSizeFilter", {}).get("qtyStep", "0.001"))
+            self._qty_step_cache[symbol] = step
+            log.debug("qty_step for %s = %s", symbol, step)
+            return step
+        except Exception as exc:
+            log.warning("get_qty_step error %s: %s — defaulting to 0.001", symbol, exc)
+            return 0.001
+
+    def _round_qty(self, symbol: str, qty: float) -> float:
+        """Floor qty to the symbol's allowed step size."""
+        step = self.get_qty_step(symbol)
+        if step <= 0:
+            return qty
+        factor = 1.0 / step
+        return math.floor(qty * factor) / factor
+
     # ── order placement ───────────────────────────────────────────────────────
 
     def place_limit_order(self, symbol: str, side: str, qty: float,
@@ -75,6 +105,10 @@ class BybitClient:
                      symbol, side, qty, price, fake_id)
             return fake_id
         try:
+            qty = self._round_qty(symbol, qty)
+            if qty <= 0:
+                log.warning("place_limit_order %s: qty rounds to 0 after step adjustment", symbol)
+                return None
             resp = self._session.place_order(
                 category="linear",
                 symbol=symbol,
@@ -101,6 +135,10 @@ class BybitClient:
             log.info("[DRY] place_market_order %s %s qty=%s → %s", symbol, side, qty, fake_id)
             return fake_id
         try:
+            qty = self._round_qty(symbol, qty)
+            if qty <= 0:
+                log.warning("place_market_order %s: qty rounds to 0 after step adjustment", symbol)
+                return None
             resp = self._session.place_order(
                 category="linear",
                 symbol=symbol,
@@ -178,11 +216,20 @@ class BybitClient:
         """Return available USDT balance."""
         try:
             resp = self._session.get_wallet_balance(accountType="UNIFIED")
-            self._ok()
-            coins = resp.get("result", {}).get("list", [{}])[0].get("coin", [])
+            account = resp.get("result", {}).get("list", [{}])[0]
+            # Try per-coin availableToWithdraw first
+            coins = account.get("coin", [])
             for coin in coins:
                 if coin.get("coin") == "USDT":
-                    return float(coin.get("availableToWithdraw", 0))
+                    val = coin.get("availableToWithdraw", "")
+                    if val != "":
+                        self._ok()
+                        return float(val)
+            # Fall back to account-level totalAvailableBalance
+            val = account.get("totalAvailableBalance", "")
+            if val != "":
+                self._ok()
+                return float(val)
         except Exception as exc:
             self._fail("fetch_wallet_balance", exc)
         return 0.0

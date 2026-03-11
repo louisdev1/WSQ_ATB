@@ -28,13 +28,13 @@ def _clean(text: str) -> str:
 
 
 def _extract_symbol(text: str) -> str:
-    """Pull a crypto symbol from text like #AXLUSDT, AXLUSDT, $AXLUSDT."""
-    m = re.search(r"#?(\$?[A-Z0-9]{2,20}USDT)", text.upper())
+    """Pull a crypto symbol from text like #AXLUSDT, AXLUSDT, $AXLUSDT, #1000LUNCUSDT."""
+    # Match standard USDT pairs including 1000x-prefixed ones
+    m = re.search(r"#?\$?([A-Z0-9]{2,20}USDT)", text.upper())
     if m:
-        sym = m.group(1).lstrip("$#")
-        return sym
-    # Fallback: any ALL-CAPS word 4-12 chars
-    m = re.search(r"\b([A-Z]{2,12})\b", text)
+        return m.group(1).lstrip("$#")
+    # Fallback: any ALL-CAPS word 3-12 chars
+    m = re.search(r"\b([A-Z]{3,12})\b", text)
     return m.group(1) if m else ""
 
 
@@ -49,6 +49,8 @@ def _extract_price(text: str) -> float:
 
 def _extract_prices(text: str) -> List[float]:
     """Extract all prices from a line, stripping $ and handling ranges."""
+    # Remove parenthetical notes like (Short term), (Enter partially) before extracting
+    text = re.sub(r"\([^)]*\)", "", text)
     nums = re.findall(r"\$?([\d]+(?:[.,][\d]+)?)", text)
     result = []
     for n in nums:
@@ -72,10 +74,10 @@ def _direction(text: str) -> Optional[Direction]:
 
 def _is_new_signal(text: str) -> bool:
     low = text.lower()
-    has_coin = bool(re.search(r"coin\s*:", low))
+    has_coin      = bool(re.search(r"coin\s*:", low))
     has_direction = bool(re.search(r"direction\s*:", low))
-    has_entry = bool(re.search(r"entry\s*:", low))
-    has_sl = bool(re.search(r"stop.?loss\s*:", low))
+    has_entry     = bool(re.search(r"entry\s*:", low))
+    has_sl        = bool(re.search(r"stop.?loss\s*:|stop\s*:|\bsl\s*:", low))
     return (has_coin or has_direction) and has_entry and has_sl
 
 
@@ -86,8 +88,11 @@ def _is_close_all(text: str) -> bool:
 
 def _is_close_symbol(text: str) -> bool:
     low = text.lower()
+    # "close AXLUSDT", "exit BTCUSDT", "#AXLUSDT close the position", "all targets done, close position for X"
     return bool(re.search(
-        r"\b(close|exit|close\s+position\s+for)\s+#?[A-Z0-9]{2,20}USDT\b",
+        r"(close|exit)\s+#?[A-Z0-9]{2,20}USDT\b"
+        r"|#?[A-Z0-9]{2,20}USDT.{0,20}(close|exit)\b"
+        r"|close\s+position\s+for\s+#?[A-Z0-9]{2,20}USDT",
         low, re.IGNORECASE,
     ))
 
@@ -103,7 +108,7 @@ def _is_cancel_remaining(text: str) -> bool:
 def _is_move_sl_be(text: str) -> bool:
     low = text.lower()
     return bool(re.search(
-        r"(move\s+sl|move\s+stop|put\s+stop|set\s+stop).{0,30}(entry|break.?even|be)\b",
+        r"(move\s+sl|move\s+stop|put\s+stop|set\s+stop).{0,30}(entry|break.?even|\bbe\b)",
         low,
     ))
 
@@ -111,7 +116,7 @@ def _is_move_sl_be(text: str) -> bool:
 def _is_move_sl_price(text: str) -> bool:
     low = text.lower()
     return bool(re.search(
-        r"(move\s+stop|new\s+stop|update\s+stop|stop.loss|move\s+sl\s+to\s+[\d]|sl\s+to\s+[\d]).{0,40}\d",
+        r"(move\s+stop|new\s+stop|update\s+stop|stop.loss|move\s+sl|sl\s+to)\s*.{0,20}\d",
         low,
     ))
 
@@ -134,16 +139,13 @@ def _is_add_entries(text: str) -> bool:
 
 def _is_market_entry(text: str) -> bool:
     low = text.lower()
-    return bool(re.search(
-        r"\b(buy|sell|enter)\s+now\b",
-        low,
-    ))
+    return bool(re.search(r"\b(buy|sell|enter)\s+now\b", low))
 
 
 def _is_partial_close(text: str) -> bool:
     low = text.lower()
     return bool(re.search(
-        r"(close\s+\d+\s*%|close\s+half|take\s+partial|partial\s+(close|profit))",
+        r"(close\s+\d+\s*%|close\s+half|take\s+partial|partial\s+(close|profit)|secure\s+profit)",
         low,
     ))
 
@@ -157,11 +159,13 @@ def _is_cancel_signal(text: str) -> bool:
 
 
 def _is_update_commentary(text: str) -> bool:
-    """Messages from the group that start with #SYMBOL UPDATE: or #SYMBOL/USDT Stop Target Hit"""
+    """Update messages and stop/target hit notifications — logged but not traded."""
     if re.search(r"#[A-Z0-9]+(?:/USDT)?\s+UPDATE\s*:", text, re.IGNORECASE):
         return True
-    # Stop hit / loss messages like "#SAFE/USDT Stop Target Hit"
-    if re.search(r"#[A-Z0-9]+(?:/USDT)?\s+(Stop\s+Target\s+Hit|stop\s+hit|target\s+hit)", text, re.IGNORECASE):
+    if re.search(
+        r"#[A-Z0-9]+(?:/USDT)?\s+(Stop\s+Target\s+Hit|stop\s+hit|target\s+hit|all\s+targets)",
+        text, re.IGNORECASE,
+    ):
         return True
     return False
 
@@ -170,13 +174,16 @@ def _is_update_commentary(text: str) -> bool:
 
 def _parse_new_signal(raw: str, msg_id: int) -> NewSignal:
     lines = [l.strip() for l in raw.splitlines() if l.strip()]
-    sig = NewSignal(raw_text=raw, message_type=MessageType.NEW_SIGNAL, telegram_message_id=msg_id)
+    sig   = NewSignal(raw_text=raw, message_type=MessageType.NEW_SIGNAL,
+                      telegram_message_id=msg_id)
 
     for line in lines:
         low = line.lower()
 
         if re.match(r"coin\s*:", low):
-            sig.symbol = _extract_symbol(line)
+            # Strip parenthetical labels like "(Futures)", "(Perp)" from coin line
+            clean_line = re.sub(r"\([^)]*\)", "", line)
+            sig.symbol = _extract_symbol(clean_line)
 
         elif re.match(r"direction\s*:", low):
             d = _direction(line)
@@ -193,16 +200,26 @@ def _parse_new_signal(raw: str, msg_id: int) -> NewSignal:
         elif re.match(r"entry\s*:", low):
             prices = _extract_prices(line)
             if len(prices) >= 2:
-                sig.entry_low = min(prices[:2])
+                sig.entry_low  = min(prices[:2])
                 sig.entry_high = max(prices[:2])
             elif len(prices) == 1:
                 sig.entry_low = sig.entry_high = prices[0]
             sig.enter_partially = bool(re.search(r"partial(ly)?|buy\s+partial", low))
 
-        elif re.match(r"targets?\s*:", low) or re.match(r"tp\s*:", low):
-            sig.targets = _extract_prices(line)
+        elif re.match(r"targets?\s*:|tp\s*\d*\s*:", low):
+            # Targets on a single line: "Targets: 1.0 - 2.0 - 3.0"
+            prices = _extract_prices(line)
+            if prices:
+                sig.targets = prices
 
-        elif re.match(r"stop.?loss\s*:", low) or re.match(r"stop\s*:", low):
+        elif re.match(r"target\s*\d+\s*:", low):
+            # "Target 1: 1780" — strip the label number, extract only the price after the colon
+            after_colon = line.split(":", 1)[1] if ":" in line else line
+            prices = _extract_prices(after_colon)
+            if prices:
+                sig.targets.append(prices[0])
+
+        elif re.match(r"stop.?loss\s*:|stop\s*:|\bsl\s*:", low):
             prices = _extract_prices(line)
             if prices:
                 sig.stop_loss = prices[0]
@@ -229,38 +246,38 @@ def _parse_move_sl_be(raw: str, msg_id: int) -> MoveSLBreakEven:
 
 
 def _parse_move_sl_price(raw: str, msg_id: int) -> MoveSLPrice:
-    sym = _extract_symbol(raw)
+    sym   = _extract_symbol(raw)
     price = _extract_price(raw)
     return MoveSLPrice(raw_text=raw, message_type=MessageType.MOVE_SL_PRICE,
                        telegram_message_id=msg_id, symbol=sym, price=price)
 
 
 def _parse_update_targets(raw: str, msg_id: int) -> UpdateTargets:
-    sym = _extract_symbol(raw)
+    sym     = _extract_symbol(raw)
     targets = _extract_prices(raw)
     return UpdateTargets(raw_text=raw, message_type=MessageType.UPDATE_TARGETS,
                          telegram_message_id=msg_id, symbol=sym, targets=targets)
 
 
 def _parse_add_entries(raw: str, msg_id: int) -> AddEntries:
-    sym = _extract_symbol(raw)
+    sym    = _extract_symbol(raw)
     prices = _extract_prices(raw)
-    low = min(prices[:2]) if len(prices) >= 2 else (prices[0] if prices else 0.0)
-    high = max(prices[:2]) if len(prices) >= 2 else low
+    lo  = min(prices[:2]) if len(prices) >= 2 else (prices[0] if prices else 0.0)
+    hi  = max(prices[:2]) if len(prices) >= 2 else lo
     return AddEntries(raw_text=raw, message_type=MessageType.ADD_ENTRIES,
-                      telegram_message_id=msg_id, symbol=sym, entry_low=low, entry_high=high)
+                      telegram_message_id=msg_id, symbol=sym, entry_low=lo, entry_high=hi)
 
 
 def _parse_market_entry(raw: str, msg_id: int) -> MarketEntry:
     sym = _extract_symbol(raw)
-    d = _direction(raw)
+    d   = _direction(raw)
     return MarketEntry(raw_text=raw, message_type=MessageType.MARKET_ENTRY,
                        telegram_message_id=msg_id, symbol=sym, direction=d)
 
 
 def _parse_partial_close(raw: str, msg_id: int) -> PartialClose:
     sym = _extract_symbol(raw)
-    m = re.search(r"(\d+)\s*%", raw)
+    m   = re.search(r"(\d+)\s*%", raw)
     pct = float(m.group(1)) if m else 50.0
     if re.search(r"half", raw.lower()):
         pct = 50.0
@@ -318,7 +335,6 @@ def parse_message(raw_text: str, telegram_message_id: int = 0) -> ParsedMessage:
         if _is_partial_close(text):
             return _parse_partial_close(text, telegram_message_id)
 
-        # Commentary / update messages → not actionable
         if _is_update_commentary(text):
             return Commentary(raw_text=text, message_type=MessageType.COMMENTARY,
                               telegram_message_id=telegram_message_id)

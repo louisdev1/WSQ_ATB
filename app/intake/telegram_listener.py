@@ -40,8 +40,14 @@ class TelegramListener:
         log.info("Telegram connected")
 
         # Resolve group entity once
+        # Support numeric chat IDs (e.g. -1001234567890) as well as usernames
         try:
-            group = await self._client.get_entity(self._group_name)
+            group_ref = int(self._group_name)
+        except ValueError:
+            group_ref = self._group_name
+
+        try:
+            group = await self._client.get_entity(group_ref)
         except Exception as exc:
             log.error("Cannot resolve Telegram group '%s': %s", self._group_name, exc)
             report_telegram_fail()
