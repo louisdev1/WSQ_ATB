@@ -1,0 +1,24 @@
+# 1. Clone het project
+git clone https://github.com/louisdev1/WSQ_ATB.git
+cd WSQ_ATB
+
+# 2. Maak een venv en installeer dependencies
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 3. Maak je .env aan (kopieer van example en vul in)
+cp .env.example .env
+nano .env
+```
+
+In `.env` op de Pi, pas deze aan:
+```
+PATH=/home/pi/WSQ_ATB
+TELEGRAM_GROUP_NAME=-1001572490706
+TELEGRAM_API_ID=<jouw id>
+TELEGRAM_API_HASH=<jouw hash>
+TELEGRAM_PHONE=<jouw nummer>
+BYBIT_API_KEY=<jouw key>
+BYBIT_API_SECRET=<jouw secret>
+DRY_RUN=true

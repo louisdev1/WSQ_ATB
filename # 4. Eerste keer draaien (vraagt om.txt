@@ -1,0 +1,7 @@
+# 4. Eerste keer draaien (vraagt om Telegram verificatiecode)
+python -m app.main
+
+# 5. Daarna 24/7 laten draaien met screen of systemd:
+screen -S tradingbot
+python -m app.main
+# Ctrl+A, D om te detachen

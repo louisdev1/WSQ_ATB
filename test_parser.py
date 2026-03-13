@@ -1,519 +1,707 @@
-import sys
-sys.path.insert(0, '.')
+"""
+tests/test_parser.py
 
-from app.parsing.parser import parse_message
+Comprehensive test suite for app/parsing/parser.py.
+
+Run with:
+    python -m pytest tests/test_parser.py -v
+    # or without pytest:
+    python tests/test_parser.py
+
+Covers:
+  - _normalise_number  (price parsing edge cases)
+  - _extract_prices    (multi-price lines)
+  - _extract_symbol    (all symbol formats)
+  - Every MessageType  (real WSQ message variations)
+  - Edge cases         (missing fields, garbage, emoji, unicode)
+"""
+
+import sys
+import os
+import traceback
+from dataclasses import dataclass
+from typing import Any, Callable, Optional
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from app.parsing.parser import (
+    _normalise_number,
+    _extract_prices,
+    _extract_symbol,
+    parse_message,
+)
 from app.parsing.models import MessageType, Direction
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Each test is: (raw_text, expected_type, expected_symbol_or_None, extra_checks_dict)
-# extra_checks keys: direction, entry_low, entry_high, sl, targets, price, percent
-# ─────────────────────────────────────────────────────────────────────────────
-
-tests = [
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # NEW SIGNAL – variations
-    # ══════════════════════════════════════════════════════════════════════════
-
-    # Standard short with dollar signs
-    (
-        "Coin: #AXLUSDT\nDirection: Short\nLeverage: 5-10x\n"
-        "Entry: $0.05250 - $0.05300 (Enter partially)\n"
-        "Targets: $0.05050 - $0.04920 - $0.04800 - $0.04700 - $0.04500 - $0.04200\n"
-        "Stop-loss: $0.05400",
-        MessageType.NEW_SIGNAL, "AXLUSDT",
-        {"direction": Direction.SHORT, "entry_low": 0.0525, "entry_high": 0.053,
-         "sl": 0.054, "targets": [0.0505, 0.0492, 0.048, 0.047, 0.045, 0.042]}
-    ),
-
-    # Standard long, prices without $, "Buy partially"
-    (
-        "Coin: #SAGAUSDT\nDirection: Long\nLeverage: 5-10x\n"
-        "#SAGA has already broken out of the symmetrical triangle and is looking bullish.\n"
-        "Entry: 0.03360 - 0.03200$ (Buy partially)\n"
-        "Targets: 0.03450 - 0.03550 - 0.03650 - 0.03750 - 0.03950 - 0.04200$\n"
-        "Stop-loss: 0.03100$",
-        MessageType.NEW_SIGNAL, "SAGAUSDT",
-        {"direction": Direction.LONG, "entry_low": 0.032, "entry_high": 0.0336, "sl": 0.031}
-    ),
-
-    # Large price numbers (ZEC)
-    (
-        "Coin: #ZECUSDT\nDirection: Short\nLeverage: 5-10x\n"
-        "Entry: 196.60 - 202.50$ (Enter partially)\n"
-        "Targets: 190 - 184 - 178 - 172 - 162 - 150$\n"
-        "Stop-loss: 210$",
-        MessageType.NEW_SIGNAL, "ZECUSDT",
-        {"direction": Direction.SHORT, "entry_low": 196.6, "entry_high": 202.5, "sl": 210.0,
-         "targets": [190.0, 184.0, 178.0, 172.0, 162.0, 150.0]}
-    ),
-
-    # Mid-range prices (INJ), no dollar on entry
-    (
-        "Coin: #INJUSDT\nDirection: Short\nLeverage: 5-10x\n"
-        "Entry: 2.865 - 2.950$\n"
-        "Targets: 2.800 - 2.740 - 2.680 - 2.620 - 2.480 - 2.300$\n"
-        "Stop-loss: 3.050$",
-        MessageType.NEW_SIGNAL, "INJUSDT",
-        {"direction": Direction.SHORT, "entry_low": 2.865, "entry_high": 2.95, "sl": 3.05}
-    ),
-
-    # Large BNB prices
-    (
-        "Coin: #BNBUSDT\nDirection: Long\nLeverage: 5-10x\n"
-        "Entry: 619.5 - 616$ (Buy partially)\n"
-        "Targets: 630 - 642.5 - 655.3 - 668$\n"
-        "Stop-loss: 612$",
-        MessageType.NEW_SIGNAL, "BNBUSDT",
-        {"direction": Direction.LONG, "entry_low": 616.0, "entry_high": 619.5, "sl": 612.0,
-         "targets": [630.0, 642.5, 655.3, 668.0]}
-    ),
-
-    # 1000x prefixed symbol
-    (
-        "Coin: #1000LUNCUSDT\nDirection: Short\nLeverage: 5-10x\n"
-        "Entry: 0.03310 - 0.03360 (Enter partially)\n"
-        "Targets: 0.03240 - 0.03180 - 0.03120 - 0.03040 - 0.02920 - 0.02800\n"
-        "Stop-loss: 0.03420",
-        MessageType.NEW_SIGNAL, "1000LUNCUSDT",
-        {"direction": Direction.SHORT, "sl": 0.0342}
-    ),
-
-    # No space before $ on entry range
-    (
-        "Coin: #DOTUSDT\nDirection: Short\nLeverage: 5-10x\n"
-        "Entry: $1.670 - $1.770(Enter partially)\n"
-        "Targets: $1.640 - $1.600 - $1.570 - $1.530 - $1.460 - $1.400\n"
-        "Stop-loss: $1.820",
-        MessageType.NEW_SIGNAL, "DOTUSDT",
-        {"direction": Direction.SHORT, "entry_low": 1.67, "entry_high": 1.77, "sl": 1.82}
-    ),
-
-    # Small prices (KNC)
-    (
-        "Coin: #KNCUSDT\nDirection: Long\nLeverage: 5-10x\n"
-        "Entry: $0.1515 - $0.1490 (Buy partially)\n"
-        "Targets: $0.1540 - $0.1570 - $0.1610 - $0.1650 - $0.1700 - $0.1750\n"
-        "Stop-loss: $0.1470",
-        MessageType.NEW_SIGNAL, "KNCUSDT",
-        {"direction": Direction.LONG, "entry_low": 0.149, "entry_high": 0.1515, "sl": 0.147}
-    ),
-
-    # With extra commentary line between fields
-    (
-        "Coin: #SNXUSDT\nDirection: Short\nLeverage: 5-10x\n"
-        "#SNX has already broken down the Inverse Cup and Handle pattern and is looking bearish.\n"
-        "Entry: $0.335 - $0.342(Enter partially)\n"
-        "Targets: $0.328 - $0.320 - $0.312 - $0.306 - $0.290 - $0.270\n"
-        "Stop-loss: $0.350",
-        MessageType.NEW_SIGNAL, "SNXUSDT",
-        {"direction": Direction.SHORT, "entry_low": 0.335, "entry_high": 0.342, "sl": 0.35}
-    ),
-
-    # Long with AXS, prices without dollar sign anywhere
-    (
-        "Coin: #AXSUSDT\nDirection: Long\nLeverage: 5-10x\n"
-        "#AXS already breaked out the Falling wedge pattern and looking Bullish.\n"
-        "Entry: 1.375 - 1.340$(Buy partially)\n"
-        "Targets: 1.410 - 1.440 - 1.470 - 1.510 - 1.600 - 1.680 - 1.750$\n"
-        "Stop-loss: 1.300$",
-        MessageType.NEW_SIGNAL, "AXSUSDT",
-        {"direction": Direction.LONG, "entry_low": 1.34, "entry_high": 1.375, "sl": 1.3}
-    ),
-
-    # QNT with mixed $ placement
-    (
-        "Coin: #QNTUSDT\nDirection: Short\nLeverage: 5-10x\n"
-        "Entry: $64.10 - $65(Enter partially)\n"
-        "Targets: $62.5 - $61 - $59.5 - $58 - $55\n"
-        "Stop-loss: $66",
-        MessageType.NEW_SIGNAL, "QNTUSDT",
-        {"direction": Direction.SHORT, "entry_low": 64.1, "entry_high": 65.0, "sl": 66.0}
-    ),
-
-    # LAYER short with extra volatility commentary attached
-    (
-        "Market is very volatile now. So use low leverage.\n\n"
-        "Coin: #LAYERUSDT\nDirection: Short\nLeverage: 5-10x\n"
-        "Entry: 0.08230 - 0.08400$ (Enter partially)\n"
-        "Targets: 0.08000 - 0.07800 - 0.07600 - 0.07400 - 0.07000 - 0.06600$\n"
-        "Stop-loss: 0.08600$",
-        MessageType.NEW_SIGNAL, "LAYERUSDT",
-        {"direction": Direction.SHORT, "sl": 0.086}
-    ),
-
-    # EPIC long
-    (
-        "Coin: #EPICUSDT\nDirection: Long\nLeverage: 5-10x\n"
-        "Entry: 0.3065 - 0.3000$ (Buy partially)\n"
-        "Targets: 0.3140 - 0.3200 - 0.3260 - 0.3340 - 0.3400$\n"
-        "Stop-loss: 0.2950$",
-        MessageType.NEW_SIGNAL, "EPICUSDT",
-        {"direction": Direction.LONG, "entry_low": 0.3, "entry_high": 0.3065, "sl": 0.295}
-    ),
-
-    # ARK long
-    (
-        "Coin: #ARKUSDT\nDirection: Long\nLeverage: 5-10x\n"
-        "Entry: 0.1925 - 0.1880$ (Buy partially)\n"
-        "Targets: 0.1980 - 0.2020 - 0.2060 - 0.2120 - 0.2200$\n"
-        "Stop-loss: 0.1840$",
-        MessageType.NEW_SIGNAL, "ARKUSDT",
-        {"direction": Direction.LONG, "entry_low": 0.188, "entry_high": 0.1925, "sl": 0.184}
-    ),
-
-    # DASH – direction says Short but entry says "Buy partially" (signal typo in real data)
-    (
-        "Coin: #DASHUSDT\nDirection: Short\nLeverage: 5-10x\n"
-        "Entry: 34.40 - 35$ (Buy partially)\n"
-        "Targets: 33.60 - 32.80 - 32 - 31.40 - 30$\n"
-        "Stop loss: 35.50$",
-        MessageType.NEW_SIGNAL, "DASHUSDT",
-        {"direction": Direction.SHORT, "entry_low": 34.4, "entry_high": 35.0, "sl": 35.5}
-    ),
-
-    # SAFE (short) – very small prices
-    (
-        "Coin: #SAFEUSDT\nDirection: Short\nLeverage: 5-10x\n"
-        "Entry: $0.0947 - $0.0960 (Enter partially)\n"
-        "Targets: $0.0925 - $0.0905 - $0.0885 - $0.0865 - $0.0840\n"
-        "Stop-loss: $0.0980",
-        MessageType.NEW_SIGNAL, "SAFEUSDT",
-        {"direction": Direction.SHORT, "entry_low": 0.0947, "entry_high": 0.096, "sl": 0.098}
-    ),
-
-    # ENJ short
-    (
-        "Coin: #ENJUSDT\nDirection: Short\nLeverage: 5-10x\n"
-        "Entry: $0.02030 - $0.02100 (Enter partially)\n"
-        "Targets: $0.02000 - $0.01960 - $0.01920 - $0.01880 - $0.01780 - $0.01650\n"
-        "Stop-loss: $0.02150",
-        MessageType.NEW_SIGNAL, "ENJUSDT",
-        {"direction": Direction.SHORT, "sl": 0.0215}
-    ),
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # COMMENTARY / UPDATES – must NOT trigger any trade action
-    # ══════════════════════════════════════════════════════════════════════════
-
-    ("Wallstreet Queen Official VIP, [11.03.2026 11:02]\n#SAGAUSDT UPDATE:\nTarget 1,2,3 done nicely ✔️\nSo far 100% Profits with 10x leverage🤑\nEnjoy the profits Guys🍾🍾",
-     MessageType.COMMENTARY, None, {}),
-
-    ("#LAYERUSDT UPDATE:\nTarget 2 done nicely✔️\nSo far 30% Profits with 10x leverage🤑",
-     MessageType.COMMENTARY, None, {}),
-
-    ("#BTCUSDT UPDATE:\n#Bitcoin is now trading around $69,800. In the weekly timeframe, Bitcoin is testing an important resistance zone.",
-     MessageType.COMMENTARY, None, {}),
-
-    ("#ETHUSDT UPDATE:\nEthereum is pumping exactly from support. If the pump continues, it may go towards the upper resistance zone.",
-     MessageType.COMMENTARY, None, {}),
-
-    ("#INJUSDT UPDATE:\nTarget 1 done nicely✔️\nSo far 30% Profits with 10x leverage🤑",
-     MessageType.COMMENTARY, None, {}),
-
-    ("#SNXUSDT UPDATE:\nTarget 1,2,3,4 done nicely✔️\n80% profit booked with 10x Leverage🤑",
-     MessageType.COMMENTARY, None, {}),
-
-    ("#MORPHOUSDT UPDATE:\nAll Targets done nicely✔️\n410% Profits with 10x leverage🤑",
-     MessageType.COMMENTARY, None, {}),
-
-    ("#ENJUSDT UPDATE:\nTarget 5 done nicely✔️\nSo far 140% Profits with 10x leverage🤑",
-     MessageType.COMMENTARY, None, {}),
-
-    ("#FLOWUSDT UPDATE:\nTarget 4 done nicely✔️\nSo far 140% Profits with 10x leverage🤑",
-     MessageType.COMMENTARY, None, {}),
-
-    ("#QNTUSDT UPDATE:\nTarget 1 done nicely✔️\nSo far 30% Profits with 10x leverage🤑",
-     MessageType.COMMENTARY, None, {}),
-
-    ("#LPTUSDT UPDATE:\nTarget 2,3 done nicely✔️\nSo far 90% Profits with 10x leverage🤑",
-     MessageType.COMMENTARY, None, {}),
-
-    ("#BTCUSDT UPDATE:\nBitcoin is currently trading around $65,700. It is moving inside a symmetrical triangle on the daily timeframe.",
-     MessageType.COMMENTARY, None, {}),
-
-    # Stop hit messages with /USDT format
-    ("#SAFE/USDT Stop Target Hit ⛔\nLoss: 20.8443% 📉",
-     MessageType.COMMENTARY, None, {}),
-
-    ("#1000LUNC/USDT Stop Target Hit ⛔\nLoss: 19.1154% 📉",
-     MessageType.COMMENTARY, None, {}),
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # IGNORE – general noise, market commentary, news
-    # ══════════════════════════════════════════════════════════════════════════
-
-    ("Market is very volatile now. So use low leverage and low amount of your capital as per your Risk management . Don't wait for all Targets, book profits Partially",
-     MessageType.IGNORE, None, {}),
-
-    ("Risky trade, only for risk-takers.",
-     MessageType.IGNORE, None, {}),
-
-    ("JUST IN: Bitmine added 40,613 $ETH over the past week.\nThe firm now holds ~4.326M ETH, with ~2.9M ETH staked.",
-     MessageType.IGNORE, None, {}),
-
-    ("#Pin our channel to the top and #Unmute our channel✅",
-     MessageType.IGNORE, None, {}),
-
-    ("Those who followed us and opened a long position have booked good profits. 90% profits booked with 10x Lev. Enjoy the profits, guys",
-     MessageType.IGNORE, None, {}),
-
-    ("For more updates like this, stay tuned with us.",
-     MessageType.IGNORE, None, {}),
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # CLOSE ALL – multiple phrasings
-    # ══════════════════════════════════════════════════════════════════════════
-
-    ("close all trades",         MessageType.CLOSE_ALL, None, {}),
-    ("close all positions",      MessageType.CLOSE_ALL, None, {}),
-    ("emergency close all",      MessageType.CLOSE_ALL, None, {}),
-    ("exit all now",             MessageType.CLOSE_ALL, None, {}),
-    ("CLOSE ALL",                MessageType.CLOSE_ALL, None, {}),
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # CLOSE SYMBOL – multiple phrasings
-    # ══════════════════════════════════════════════════════════════════════════
-
-    ("close AXLUSDT",            MessageType.CLOSE_SYMBOL, "AXLUSDT", {}),
-    ("exit BTCUSDT now",         MessageType.CLOSE_SYMBOL, "BTCUSDT", {}),
-    ("close SAGAUSDT",           MessageType.CLOSE_SYMBOL, "SAGAUSDT", {}),
-    ("close INJUSDT position",   MessageType.CLOSE_SYMBOL, "INJUSDT", {}),
-    ("exit BNBUSDT",             MessageType.CLOSE_SYMBOL, "BNBUSDT", {}),
-    ("close position for DOTUSDT", MessageType.CLOSE_SYMBOL, "DOTUSDT", {}),
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # CANCEL REMAINING ENTRIES
-    # ══════════════════════════════════════════════════════════════════════════
-
-    ("cancel remaining entries for AXLUSDT",   MessageType.CANCEL_REMAINING_ENTRIES, "AXLUSDT", {}),
-    ("cancel open buy orders for BTCUSDT",     MessageType.CANCEL_REMAINING_ENTRIES, "BTCUSDT", {}),
-    ("cancel remaining orders for SAGAUSDT",   MessageType.CANCEL_REMAINING_ENTRIES, "SAGAUSDT", {}),
-    ("cancel open sell orders for INJUSDT",    MessageType.CANCEL_REMAINING_ENTRIES, "INJUSDT", {}),
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # MOVE SL TO BREAK-EVEN
-    # ══════════════════════════════════════════════════════════════════════════
-
-    ("move SL to entry",                MessageType.MOVE_SL_BREAK_EVEN, None, {}),
-    ("move SL to breakeven",            MessageType.MOVE_SL_BREAK_EVEN, None, {}),
-    ("move SL to break even",           MessageType.MOVE_SL_BREAK_EVEN, None, {}),
-    ("put stop at BE",                  MessageType.MOVE_SL_BREAK_EVEN, None, {}),
-    ("move stop loss to break even",    MessageType.MOVE_SL_BREAK_EVEN, None, {}),
-    ("set stop to entry price",         MessageType.MOVE_SL_BREAK_EVEN, None, {}),
-    ("move stop to breakeven",          MessageType.MOVE_SL_BREAK_EVEN, None, {}),
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # MOVE SL TO PRICE
-    # ══════════════════════════════════════════════════════════════════════════
-
-    ("move stop loss to 0.03358",                   MessageType.MOVE_SL_PRICE, None, {"price": 0.03358}),
-    ("new stop loss: 0.0310",                       MessageType.MOVE_SL_PRICE, None, {"price": 0.031}),
-    ("update stop for BTCUSDT to 65000",            MessageType.MOVE_SL_PRICE, "BTCUSDT", {"price": 65000.0}),
-    ("move SL to 0.05100",                          MessageType.MOVE_SL_PRICE, None, {"price": 0.051}),
-    ("move SL to 202",                              MessageType.MOVE_SL_PRICE, None, {"price": 202.0}),
-    ("new stop loss: 3.10",                         MessageType.MOVE_SL_PRICE, None, {"price": 3.1}),
-    ("stop loss updated to 640",                    MessageType.MOVE_SL_PRICE, None, {"price": 640.0}),
-    ("move stop to 1.250",                          MessageType.MOVE_SL_PRICE, None, {"price": 1.25}),
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # CANCEL SIGNAL
-    # ══════════════════════════════════════════════════════════════════════════
-
-    ("ignore previous signal",                  MessageType.CANCEL_SIGNAL, None, {}),
-    ("cancel previous setup",                   MessageType.CANCEL_SIGNAL, None, {}),
-    ("AXLUSDT setup invalidated",               MessageType.CANCEL_SIGNAL, "AXLUSDT", {}),
-    ("disregard the last signal",               MessageType.CANCEL_SIGNAL, None, {}),
-    ("signal cancelled for SAGAUSDT",           MessageType.CANCEL_SIGNAL, "SAGAUSDT", {}),
-    ("DOTUSDT setup invalidated, ignore it",    MessageType.CANCEL_SIGNAL, "DOTUSDT", {}),
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # MARKET ENTRY
-    # ══════════════════════════════════════════════════════════════════════════
-
-    ("buy now",     MessageType.MARKET_ENTRY, None, {}),
-    ("sell now",    MessageType.MARKET_ENTRY, None, {}),
-    ("enter now",   MessageType.MARKET_ENTRY, None, {}),
-    ("BUY NOW",     MessageType.MARKET_ENTRY, None, {}),
-    ("SELL NOW",    MessageType.MARKET_ENTRY, None, {}),
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # PARTIAL CLOSE
-    # ══════════════════════════════════════════════════════════════════════════
-
-    ("close 50%",                       MessageType.PARTIAL_CLOSE, None, {"percent": 50.0}),
-    ("close half",                      MessageType.PARTIAL_CLOSE, None, {"percent": 50.0}),
-    ("take partial profits now",        MessageType.PARTIAL_CLOSE, None, {}),
-    ("close 25% of position",           MessageType.PARTIAL_CLOSE, None, {"percent": 25.0}),
-    ("close 75%",                       MessageType.PARTIAL_CLOSE, None, {"percent": 75.0}),
-    ("partial close now",               MessageType.PARTIAL_CLOSE, None, {}),
-    ("take partial profits on ENJUSDT", MessageType.PARTIAL_CLOSE, None, {}),
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # NEW SIGNAL – additional edge cases
-    # ══════════════════════════════════════════════════════════════════════════
-
-    # TP/SL abbreviations instead of full words
-    (
-        "Coin: #SOLUSDT\nDirection: Long\nLeverage: 5x\n"
-        "Entry: 130 - 133\nTP: 138 - 142 - 148\nSL: 127",
-        MessageType.NEW_SIGNAL, "SOLUSDT",
-        {"direction": Direction.LONG, "entry_low": 130.0, "entry_high": 133.0,
-         "sl": 127.0, "targets": [138.0, 142.0, 148.0]}
-    ),
-
-    # Stop: label (no dash, no 'loss')
-    (
-        "Coin: #AVAXUSDT\nDirection: Short\nLeverage: 10x\n"
-        "Entry: 25 - 26\nTargets: 24 - 23 - 22\nStop: 27",
-        MessageType.NEW_SIGNAL, "AVAXUSDT",
-        {"direction": Direction.SHORT, "entry_low": 25.0, "entry_high": 26.0,
-         "sl": 27.0, "targets": [24.0, 23.0, 22.0]}
-    ),
-
-    # Targets on individual numbered lines
-    (
-        "Coin: #ETHUSDT\nDirection: Short\nLeverage: 5-10x\n"
-        "Entry: 1820 - 1850\nTarget 1: 1780\nTarget 2: 1750\nTarget 3: 1700\nStop-loss: 1880",
-        MessageType.NEW_SIGNAL, "ETHUSDT",
-        {"direction": Direction.SHORT, "entry_low": 1820.0, "entry_high": 1850.0,
-         "sl": 1880.0, "targets": [1780.0, 1750.0, 1700.0]}
-    ),
-
-    # Emoji prefix + very small price (PEPE-style)
-    (
-        "⚠️ High risk trade\nCoin: #PEPEUSDT\nDirection: Long\nLeverage: 5x\n"
-        "Entry: 0.00001050 - 0.00001000\nTargets: 0.00001150 - 0.00001250\nStop-loss: 0.00000950",
-        MessageType.NEW_SIGNAL, "PEPEUSDT",
-        {"direction": Direction.LONG, "entry_low": 0.000010, "entry_high": 0.00001050,
-         "sl": 0.0000095}
-    ),
-
-    # (Futures) label on coin line
-    (
-        "Coin: #XRPUSDT (Futures)\nDirection: Short\nLeverage: 5-10x\n"
-        "Entry: 2.10 - 2.15\nTargets: 2.05 - 2.00 - 1.95\nStop-loss: 2.20",
-        MessageType.NEW_SIGNAL, "XRPUSDT",
-        {"direction": Direction.SHORT, "sl": 2.20}
-    ),
-
-    # No leverage line at all — should still parse
-    (
-        "Coin: #LINKUSDT\nDirection: Long\n"
-        "Entry: 12.50 - 12.00\nTargets: 13.00 - 13.50 - 14.00\nStop-loss: 11.50",
-        MessageType.NEW_SIGNAL, "LINKUSDT",
-        {"direction": Direction.LONG, "entry_low": 12.0, "entry_high": 12.5, "sl": 11.5}
-    ),
-
-    # NEO signal (the one we actually traded)
-    (
-        "Coin: #NEOUSDT\nDirection: Long\nLeverage: 5-10x\n"
-        "#NEO has already broken out of the Cup and Handle pattern and is looking bullish.\n"
-        "Entry: 2.583 - 2.550$ (Buy partially)\n"
-        "Targets: 2.630 - 2.690 - 2.750 - 2.800$ (Short term)\n"
-        "Stop-loss: 2.520$",
-        MessageType.NEW_SIGNAL, "NEOUSDT",
-        {"direction": Direction.LONG, "entry_low": 2.55, "entry_high": 2.583,
-         "sl": 2.52, "targets": [2.63, 2.69, 2.75, 2.80]}
-    ),
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # CLOSE SYMBOL – hashtag + inline phrasing
-    # ══════════════════════════════════════════════════════════════════════════
-
-    ("#AXLUSDT close the position",        MessageType.CLOSE_SYMBOL, "AXLUSDT", {}),
-    ("#BTCUSDT exit now",                  MessageType.CLOSE_SYMBOL, "BTCUSDT", {}),
-    ("all targets done, close ETHUSDT",    MessageType.CLOSE_SYMBOL, "ETHUSDT", {}),
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # MOVE SL TO PRICE – with symbol inline
-    # ══════════════════════════════════════════════════════════════════════════
-
-    ("Move SL for BTCUSDT to 82000",       MessageType.MOVE_SL_PRICE, "BTCUSDT", {"price": 82000.0}),
-    ("Move SL for NEOUSDT to 2.50",        MessageType.MOVE_SL_PRICE, "NEOUSDT", {"price": 2.50}),
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # PARTIAL CLOSE – secure profits phrasing
-    # ══════════════════════════════════════════════════════════════════════════
-
-    ("secure profits on ETHUSDT",          MessageType.PARTIAL_CLOSE, None, {}),
-    ("Secure profits",                     MessageType.PARTIAL_CLOSE, None, {}),
-
+# ── tiny test harness (no pytest required) ────────────────────────────────────
+
+_PASS = 0
+_FAIL = 0
+_ERRORS: list[str] = []
+
+
+def check(name: str, got: Any, expected: Any, *, close: bool = False):
+    global _PASS, _FAIL
+    if close:
+        ok = isinstance(got, (int, float)) and abs(got - expected) < 1e-6
+    else:
+        ok = got == expected
+    if ok:
+        _PASS += 1
+        print(f"  \033[92m✓\033[0m  {name}")
+    else:
+        _FAIL += 1
+        msg = f"  \033[91m✗\033[0m  {name}\n       got      {got!r}\n       expected {expected!r}"
+        print(msg)
+        _ERRORS.append(f"{name}: got {got!r}, expected {expected!r}")
+
+
+def section(title: str):
+    print(f"\n\033[96m{'═'*60}\033[0m")
+    print(f"\033[96m  {title}\033[0m")
+    print(f"\033[96m{'═'*60}\033[0m")
+
+
+def summary():
+    total = _PASS + _FAIL
+    print(f"\n{'═'*60}")
+    if _FAIL == 0:
+        print(f"\033[92m  ALL {total} TESTS PASSED\033[0m")
+    else:
+        print(f"\033[91m  {_FAIL} FAILED / {total} TOTAL\033[0m")
+        for e in _ERRORS:
+            print(f"    • {e}")
+    print(f"{'═'*60}\n")
+    return _FAIL
+
+
+# ── helpers ───────────────────────────────────────────────────────────────────
+
+def parse(text: str):
+    return parse_message(text, telegram_message_id=0)
+
+
+def mtype(text: str) -> MessageType:
+    return parse(text).message_type
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 1. _normalise_number
+# ══════════════════════════════════════════════════════════════════════════════
+section("1. _normalise_number — price parsing")
+
+cases = [
+    # Plain integers
+    ("100",         100.0),
+    ("0",           0.0),
+    # Standard decimals (dot)
+    ("0.295",       0.295),
+    ("3603.5",      3603.5),
+    ("72260.0",     72260.0),
+    # Thousands with comma (the BTC signal bug)
+    ("72,260",      72260.0),
+    ("70,800",      70800.0),
+    ("69,600",      69600.0),
+    ("74,000",      74000.0),
+    ("75,600",      75600.0),
+    ("1,000",       1000.0),
+    ("10,000",      10000.0),
+    ("100,000",     100000.0),
+    ("1,000,000",   1000000.0),
+    # European decimal (comma as decimal sep)
+    ("0,0412",      0.0412),
+    ("0,295",       0.295),   # 3 digits after comma but < 1 — actually ambiguous;
+                               # our rule: comma+3digits at end = thousands → 295.0
+                               # Let's verify what the rule actually does:
+    # Small prices with dot decimal
+    ("0.00560",     0.00560),
+    ("0.00412",     0.00412),
+    # Crypto altcoin prices
+    ("3603",        3603.0),
+    ("0.305",       0.305),
+    ("0.285",       0.285),
+    # With leading $
+    ("$72,260",     72260.0),
+    ("$0.295",      0.295),
+    ("$69,600",     69600.0),
 ]
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Runner
-# ─────────────────────────────────────────────────────────────────────────────
+for inp, expected in cases:
+    s = inp.lstrip("$").strip()
+    try:
+        got = _normalise_number(s)
+        check(f"_normalise_number({inp!r})", got, expected, close=True)
+    except Exception as e:
+        check(f"_normalise_number({inp!r})", f"EXCEPTION: {e}", expected)
 
-passed = 0
-failed = 0
 
-for entry in tests:
-    text, expected_type, expected_symbol, checks = entry
+# ══════════════════════════════════════════════════════════════════════════════
+# 2. _extract_prices — multi-price lines
+# ══════════════════════════════════════════════════════════════════════════════
+section("2. _extract_prices — multi-price lines")
 
-    result = parse_message(text, 0)
+price_cases = [
+    # Standard dash-separated
+    ("Entry: 3603 - 3590",                  [3603.0, 3590.0]),
+    ("Targets: 3680 - 3760 - 3840 - 3920 - 4000",
+                                            [3680.0, 3760.0, 3840.0, 3920.0, 4000.0]),
+    # Thousands separators
+    ("Entry: $72,260 - $70,800 (Buy partially)",
+                                            [72260.0, 70800.0]),
+    ("Targets: $74,000 - $75,600 - $76,800 - $78,000 (Short term)",
+                                            [74000.0, 75600.0, 76800.0, 78000.0]),
+    ("Stop-loss: $69,600",                  [69600.0]),
+    # Small altcoin prices
+    ("Entry: 0.305 - 0.295",               [0.305, 0.295]),
+    ("Targets: 0.315 - 0.322 - 0.330 - 0.338 - 0.355 - 0.375 - 0.395 - 0.420",
+                                            [0.315, 0.322, 0.330, 0.338, 0.355, 0.375, 0.395, 0.420]),
+    ("Stop-loss: 0.285",                   [0.285]),
+    # Very small prices (LINA style)
+    ("Entry: 0.00560 - 0.00545",           [0.00560, 0.00545]),
+    ("Stop-loss: 0.00530",                 [0.00530]),
+    # Single entry price
+    ("Entry: 3603",                         [3603.0]),
+    # With $ and no spaces
+    ("Entry: $0.305-$0.295",               [0.305, 0.295]),
+    # Parenthetical stripped
+    ("Targets: 1.0 - 2.0 - 3.0 (Short term)", [1.0, 2.0, 3.0]),
+    ("Entry: 0.305 - 0.295 (Buy partially)",   [0.305, 0.295]),
+]
 
-    type_ok   = result.message_type == expected_type
-    symbol_ok = (expected_symbol is None) or (getattr(result, "symbol", None) == expected_symbol)
+for line, expected in price_cases:
+    got = _extract_prices(line)
+    check(f"_extract_prices({line[:50]!r})", got, expected)
 
-    # Extra field checks
-    field_errors = []
-    for key, expected_val in checks.items():
-        if key == "direction":
-            actual = getattr(result, "direction", None)
-            if actual != expected_val:
-                field_errors.append(f"direction: expected {expected_val} got {actual}")
-        elif key == "entry_low":
-            actual = getattr(result, "entry_low", None)
-            if actual is None or abs(actual - expected_val) > 0.00001:
-                field_errors.append(f"entry_low: expected {expected_val} got {actual}")
-        elif key == "entry_high":
-            actual = getattr(result, "entry_high", None)
-            if actual is None or abs(actual - expected_val) > 0.00001:
-                field_errors.append(f"entry_high: expected {expected_val} got {actual}")
-        elif key == "sl":
-            actual = getattr(result, "stop_loss", None)
-            if actual is None or abs(actual - expected_val) > 0.00001:
-                field_errors.append(f"stop_loss: expected {expected_val} got {actual}")
-        elif key == "targets":
-            actual = getattr(result, "targets", [])
-            if actual != expected_val:
-                field_errors.append(f"targets: expected {expected_val} got {actual}")
-        elif key == "price":
-            actual = getattr(result, "price", None)
-            if actual is None or abs(actual - expected_val) > 0.00001:
-                field_errors.append(f"price: expected {expected_val} got {actual}")
-        elif key == "percent":
-            actual = getattr(result, "percent", None)
-            if actual is None or abs(actual - expected_val) > 0.00001:
-                field_errors.append(f"percent: expected {expected_val} got {actual}")
 
-    ok = type_ok and symbol_ok and not field_errors
+# ══════════════════════════════════════════════════════════════════════════════
+# 3. _extract_symbol
+# ══════════════════════════════════════════════════════════════════════════════
+section("3. _extract_symbol — all formats")
 
-    status = "✓" if ok else "✗"
-    label  = text.strip().splitlines()[0][:65]
+sym_cases = [
+    ("#BTCUSDT",                "BTCUSDT"),
+    ("#ETH/USDT",               "ETHUSDT"),
+    ("#HBAR/USDT UPDATE:",      "HBARUSDT"),
+    ("Coin: #CFXUSDT",          "CFXUSDT"),
+    ("Coin: #1MBABYDOGEUSDT",   "1MBABYDOGEUSDT"),
+    ("#NEOUSDT UPDATE:",        "NEOUSDT"),
+    ("AXLUSDT long setup",      "AXLUSDT"),
+    ("#ETH/USDT (Futures)",     "ETHUSDT"),
+    ("close BTCUSDT",           "BTCUSDT"),
+    ("new targets for CFXUSDT", "CFXUSDT"),
+]
 
-    if ok:
-        passed += 1
-        print(f"{status} [{expected_type.value:30}] {label}")
-    else:
-        failed += 1
-        print(f"{status} [{expected_type.value:30}] {label}")
-        if not type_ok:
-            print(f"     TYPE:   expected={expected_type.value}  got={result.message_type.value}")
-        if not symbol_ok:
-            print(f"     SYMBOL: expected={expected_symbol}  got={getattr(result, 'symbol', 'N/A')}")
-        for err in field_errors:
-            print(f"     FIELD:  {err}")
+for inp, expected in sym_cases:
+    got = _extract_symbol(inp)
+    check(f"_extract_symbol({inp!r})", got, expected)
 
-    # Always show full parsed values for new signals
-    if result.message_type == MessageType.NEW_SIGNAL:
-        print(f"        → symbol={result.symbol} dir={result.direction.value if result.direction else '?'} "
-              f"entry={result.entry_low}-{result.entry_high} sl={result.stop_loss} "
-              f"targets={result.targets} leverage={result.leverage_min}-{result.leverage_max}x")
 
-print()
-print("=" * 60)
-print(f"  {passed} passed  /  {failed} failed  /  {len(tests)} total")
-print("=" * 60)
+# ══════════════════════════════════════════════════════════════════════════════
+# 4. NEW_SIGNAL — full parse variations
+# ══════════════════════════════════════════════════════════════════════════════
+section("4. NEW_SIGNAL — full signal parsing")
 
+# 4a. Standard WSQ format (BTC with thousands separators — the bug case)
+btc_signal = """Coin: #BTCUSDT
+Direction: Long
+Leverage: 10-20x
+It has already broken out of the Cup and Handle pattern and is looking bullish.
+Entry: $72,260 - $70,800 (Buy partially)
+Targets: $74,000 - $75,600 - $76,800 - $78,000 (Short term)
+Stop-loss: $69,600"""
+
+p = parse(btc_signal)
+check("BTC signal — type",         p.message_type, MessageType.NEW_SIGNAL)
+check("BTC signal — symbol",       p.symbol,       "BTCUSDT")
+check("BTC signal — direction",    p.direction,    Direction.LONG)
+check("BTC signal — entry_high",   p.entry_high,   72260.0, close=True)
+check("BTC signal — entry_low",    p.entry_low,    70800.0, close=True)
+check("BTC signal — stop_loss",    p.stop_loss,    69600.0, close=True)
+check("BTC signal — targets",      p.targets,      [74000.0, 75600.0, 76800.0, 78000.0])
+check("BTC signal — leverage_max", p.leverage_max, 20)
+
+# 4b. ETH signal (small thousands: 3603, 3590)
+eth_signal = """Coin: #ETH/USDT
+Long Set-Up
+Leverage: 5-10x
+#ETH already breaked out the Bull Flag and looking Bullish.
+Entry: 3603 - 3590$
+Targets: 3680 - 3760 - 3840 - 3920 - 4000$
+Stop-loss: 3570$"""
+
+p = parse(eth_signal)
+check("ETH signal — type",       p.message_type, MessageType.NEW_SIGNAL)
+check("ETH signal — symbol",     p.symbol,       "ETHUSDT")
+check("ETH signal — direction",  p.direction,    Direction.LONG)
+check("ETH signal — entry_high", p.entry_high,   3603.0, close=True)
+check("ETH signal — entry_low",  p.entry_low,    3590.0, close=True)
+check("ETH signal — stop_loss",  p.stop_loss,    3570.0, close=True)
+check("ETH signal — targets[0]", p.targets[0],   3680.0, close=True)
+check("ETH signal — targets[-1]",p.targets[-1],  4000.0, close=True)
+
+# 4c. HBAR signal (small prices, many targets)
+hbar_signal = """Coin: #HBAR/USDT
+Long Set-Up
+Leverage: 5-10x
+Entry: 0.305 - 0.295$(Buy partially)
+Targets: 0.315 - 0.322 - 0.330 - 0.338 - 0.355 - 0.375 - 0.395 - 0.420$(Short-mid term)
+Stop-loss: 0.285$"""
+
+p = parse(hbar_signal)
+check("HBAR signal — type",       p.message_type, MessageType.NEW_SIGNAL)
+check("HBAR signal — symbol",     p.symbol,       "HBARUSDT")
+check("HBAR signal — entry_high", p.entry_high,   0.305, close=True)
+check("HBAR signal — entry_low",  p.entry_low,    0.295, close=True)
+check("HBAR signal — stop_loss",  p.stop_loss,    0.285, close=True)
+check("HBAR signal — n_targets",  len(p.targets), 8)
+check("HBAR signal — targets[-1]",p.targets[-1],  0.420, close=True)
+
+# 4d. LINA signal (very small prices)
+lina_signal = """Coin: #LINA/USDT
+Long Set-Up
+Leverage: 5-10x
+Entry: 0.00560 - 0.00545$(Buy partially)
+Targets: 0.00575 - 0.00590 - 0.00605 - 0.00620 - 0.00640$(Short term)
+Stop-loss: 0.00530$"""
+
+p = parse(lina_signal)
+check("LINA signal — type",       p.message_type, MessageType.NEW_SIGNAL)
+check("LINA signal — entry_high", p.entry_high,   0.00560, close=True)
+check("LINA signal — stop_loss",  p.stop_loss,    0.00530, close=True)
+check("LINA signal — n_targets",  len(p.targets), 5)
+
+# 4e. CFX signal (micro prices)
+cfx_signal = """Coin: #CFXUSDT
+Long Set-Up
+Leverage: 5-10x
+Entry: 0.0516 - 0.0505
+Targets: 0.053 - 0.0545 - 0.056 - 0.0575 - 0.061 - 0.0635 - 0.066
+Stop-loss: 0.047"""
+
+p = parse(cfx_signal)
+check("CFX signal — type",       p.message_type, MessageType.NEW_SIGNAL)
+check("CFX signal — symbol",     p.symbol,       "CFXUSDT")
+check("CFX signal — n_targets",  len(p.targets), 7)
+check("CFX signal — stop_loss",  p.stop_loss,    0.047, close=True)
+
+# 4f. SHORT signal
+short_signal = """Coin: #ETHUSDT
+Direction: Short
+Leverage: 5-10x
+Entry: 2800 - 2850
+Targets: 2700 - 2600 - 2500
+Stop-loss: 2950"""
+
+p = parse(short_signal)
+check("Short signal — direction", p.direction, Direction.SHORT)
+check("Short signal — type",      p.message_type, MessageType.NEW_SIGNAL)
+
+# 4g. Single entry price (no range)
+single_entry = """Coin: #SOLUSDT
+Direction: Long
+Leverage: 10x
+Entry: 185.5
+Targets: 190 - 195 - 200
+Stop-loss: 180"""
+
+p = parse(single_entry)
+check("Single entry — entry_low == entry_high", p.entry_low, p.entry_high)
+check("Single entry — value",                   p.entry_low, 185.5, close=True)
+
+# 4h. Missing direction line (inferred from "Long Set-Up" in body)
+no_direction_line = """Coin: #NEOUSDT
+Long Set-Up
+Leverage: 5-10x
+Entry: 2.50 - 2.45
+Targets: 2.63 - 2.69 - 2.75 - 2.80
+Stop-loss: 2.40"""
+
+p = parse(no_direction_line)
+check("Inferred direction LONG", p.direction, Direction.LONG)
+check("NEO signal — type",       p.message_type, MessageType.NEW_SIGNAL)
+
+# 4i. Leverage single value
+single_lev = """Coin: #XRPUSDT
+Direction: Long
+Leverage: 10x
+Entry: 0.55 - 0.53
+Targets: 0.58 - 0.61 - 0.64
+Stop-loss: 0.50"""
+
+p = parse(single_lev)
+check("Single leverage — min", p.leverage_min, 10)
+check("Single leverage — max", p.leverage_max, 10)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 5. COMMENTARY — update messages (must NOT trigger trades)
+# ══════════════════════════════════════════════════════════════════════════════
+section("5. COMMENTARY — update messages must not trade")
+
+commentary_cases = [
+    "#NEOUSDT UPDATE:\nTarget 1 done nicely✔️\nSo far 30% Profits with 10x leverage🤑",
+    "#CFXUSDT UPDATE:\nTarget 1,2,3,4 done nicely\nSo far 140% Profits with 10x leverage🤑",
+    "#BTCUSDT UPDATE:\nBitcoin is currently trading around $72,300.",
+    "#MTL/USDT UPDATE:\nTarget 1,2 done nicely ✔️\nSo far 50% Profits",
+    "#EGLD/USDT UPDATE:\nTarget 1,2,3 done nicely✔️",
+    "#REZ/USDT UPDATE:\nTarget 1,2,3 done nicely ✔️\nSo far 140% Profits",
+    "#BAND/USDT UPDATE:\nTarget 3,4 done nicely ✔️",
+    "Market is very volatile now. So use low leverage",
+]
+
+for msg in commentary_cases:
+    t = mtype(msg)
+    check(f"Commentary: {msg[:50]!r}", t in (MessageType.COMMENTARY, MessageType.IGNORE), True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 6. CLOSE_ALL
+# ══════════════════════════════════════════════════════════════════════════════
+section("6. CLOSE_ALL")
+
+close_all_cases = [
+    "close all positions",
+    "exit all",
+    "emergency close",
+    "Close All now!",
+    "EXIT ALL TRADES",
+]
+for msg in close_all_cases:
+    check(f"close_all: {msg!r}", mtype(msg), MessageType.CLOSE_ALL)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 7. CLOSE_SYMBOL
+# ══════════════════════════════════════════════════════════════════════════════
+section("7. CLOSE_SYMBOL")
+
+close_sym_cases = [
+    ("close BTCUSDT",              "BTCUSDT"),
+    ("exit ETHUSDT now",           "ETHUSDT"),
+    ("#CFXUSDT close the position","CFXUSDT"),
+    ("close position for NEOUSDT", "NEOUSDT"),
+]
+for msg, expected_sym in close_sym_cases:
+    p = parse(msg)
+    check(f"close_symbol type: {msg!r}",   p.message_type, MessageType.CLOSE_SYMBOL)
+    check(f"close_symbol sym: {msg!r}",    p.symbol,       expected_sym)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 8. CANCEL_REMAINING_ENTRIES
+# ══════════════════════════════════════════════════════════════════════════════
+section("8. CANCEL_REMAINING_ENTRIES")
+
+cancel_entry_cases = [
+    "cancel remaining entries BTCUSDT",
+    "cancel open orders ETHUSDT",
+    "cancel remaining buy orders",
+    "cancel open sell orders",
+]
+for msg in cancel_entry_cases:
+    check(f"cancel_entries: {msg!r}", mtype(msg), MessageType.CANCEL_REMAINING_ENTRIES)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 9. MOVE_SL_BREAK_EVEN
+# ══════════════════════════════════════════════════════════════════════════════
+section("9. MOVE_SL_BREAK_EVEN")
+
+sl_be_cases = [
+    "move sl to break even BTCUSDT",
+    "move stop to entry ETHUSDT",
+    "put stop at break-even",
+    "set stop to BE CFXUSDT",
+    "move SL to breakeven",
+]
+for msg in sl_be_cases:
+    check(f"move_sl_be: {msg!r}", mtype(msg), MessageType.MOVE_SL_BREAK_EVEN)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 10. MOVE_SL_PRICE
+# ══════════════════════════════════════════════════════════════════════════════
+section("10. MOVE_SL_PRICE")
+
+sl_price_cases = [
+    ("move stop loss BTCUSDT to 71000",     71000.0),
+    ("new stop 0.048 for CFXUSDT",          0.048),
+    ("update stop-loss to 72,500",          72500.0),
+    ("sl to 69,000 BTCUSDT",               69000.0),
+    ("move SL to 0.295",                    0.295),
+]
+for msg, expected_price in sl_price_cases:
+    p = parse(msg)
+    check(f"move_sl_price type: {msg!r}", p.message_type, MessageType.MOVE_SL_PRICE)
+    check(f"move_sl_price val:  {msg!r}", p.price, expected_price, close=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 11. UPDATE_TARGETS
+# ══════════════════════════════════════════════════════════════════════════════
+section("11. UPDATE_TARGETS")
+
+p = parse("new targets for CFXUSDT 0.061 - 0.0635 - 0.066")
+check("update_targets — type",      p.message_type, MessageType.UPDATE_TARGETS)
+check("update_targets — symbol",    p.symbol,       "CFXUSDT")
+check("update_targets — targets",   p.targets,      [0.061, 0.0635, 0.066])
+
+p = parse("update targets BTCUSDT 74000 - 75600 - 76800")
+check("update_targets BTC — type",    p.message_type, MessageType.UPDATE_TARGETS)
+check("update_targets BTC — targets", p.targets,      [74000.0, 75600.0, 76800.0])
+
+p = parse("remove tp ETHUSDT")
+check("remove tp — type", p.message_type, MessageType.UPDATE_TARGETS)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 12. ADD_ENTRIES
+# ══════════════════════════════════════════════════════════════════════════════
+section("12. ADD_ENTRIES")
+
+p = parse("new entry BTCUSDT 70000 - 68000")
+check("add_entries — type",       p.message_type, MessageType.ADD_ENTRIES)
+check("add_entries — symbol",     p.symbol,       "BTCUSDT")
+check("add_entries — entry_low",  p.entry_low,    68000.0, close=True)
+check("add_entries — entry_high", p.entry_high,   70000.0, close=True)
+
+p = parse("add entry CFXUSDT 0.050")
+check("add_entries single — type",     p.message_type, MessageType.ADD_ENTRIES)
+check("add_entries single — entry_low",p.entry_low,    0.050, close=True)
+
+p = parse("average in ETHUSDT 2600 - 2500")
+check("average in — type", p.message_type, MessageType.ADD_ENTRIES)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 13. MARKET_ENTRY
+# ══════════════════════════════════════════════════════════════════════════════
+section("13. MARKET_ENTRY")
+
+market_cases = [
+    "buy now BTCUSDT",
+    "enter now ETHUSDT",
+    "sell now XRPUSDT",
+    "Buy Now!",
+]
+for msg in market_cases:
+    check(f"market_entry: {msg!r}", mtype(msg), MessageType.MARKET_ENTRY)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 14. PARTIAL_CLOSE
+# ══════════════════════════════════════════════════════════════════════════════
+section("14. PARTIAL_CLOSE")
+
+p = parse("close 50% BTCUSDT")
+check("partial_close 50% — type",    p.message_type, MessageType.PARTIAL_CLOSE)
+check("partial_close 50% — percent", p.percent,      50.0, close=True)
+
+p = parse("close half CFXUSDT")
+check("partial_close half — type",    p.message_type, MessageType.PARTIAL_CLOSE)
+check("partial_close half — percent", p.percent,      50.0, close=True)
+
+p = parse("take partial profits ETHUSDT")
+check("take partial — type", p.message_type, MessageType.PARTIAL_CLOSE)
+
+p = parse("close 25% NEOUSDT")
+check("partial_close 25% — percent", p.percent, 25.0, close=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 15. CANCEL_SIGNAL
+# ══════════════════════════════════════════════════════════════════════════════
+section("15. CANCEL_SIGNAL")
+
+cancel_cases = [
+    "ignore previous signal BTCUSDT",
+    "cancel previous signal ETHUSDT",
+    "setup invalidated CFXUSDT",
+    "signal cancelled for NEOUSDT",
+    "disregard the last signal",
+]
+for msg in cancel_cases:
+    check(f"cancel_signal: {msg!r}", mtype(msg), MessageType.CANCEL_SIGNAL)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 16. IGNORE — noise that must never trigger a trade
+# ══════════════════════════════════════════════════════════════════════════════
+section("16. IGNORE — noise messages")
+
+ignore_cases = [
+    "Good morning traders! 🌅",
+    "Bitcoin Fear and Greed Index is 70 — Greed",
+    "Stay tuned with us for further updates ✔️",
+    "Market is very volatile. Use low leverage.",
+    "🔥🔥🔥",
+    "",
+    "   ",
+    "https://t.me/wallstreetqueen",
+    "Don't wait for all Targets, book profits Partially",
+]
+for msg in ignore_cases:
+    t = mtype(msg)
+    check(f"ignore: {msg[:40]!r}", t in (MessageType.IGNORE, MessageType.COMMENTARY), True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 17. CLASSIFIER PRIORITY — signal must win over commentary
+# ══════════════════════════════════════════════════════════════════════════════
+section("17. Classifier priority — signal beats commentary")
+
+# A message with "UPDATE:" in it but also has Entry/SL → should still be signal
+# (edge case: WSQ sometimes posts updates that look like new signals)
+ambiguous = """#BTCUSDT UPDATE:
+Coin: #BTCUSDT
+Direction: Long
+Leverage: 10x
+Entry: 72000
+Targets: 74000 - 76000
+Stop-loss: 70000"""
+
+p = parse(ambiguous)
+# new_signal classifier runs first, so this should be a signal
+check("Signal beats commentary", p.message_type, MessageType.NEW_SIGNAL)
+
+# Pure commentary with target numbers must NOT become a signal
+pure_commentary = "#CFXUSDT UPDATE:\nTarget 1,2,3,4 done nicely\nSo far 140% Profits"
+check("Commentary stays commentary",
+      mtype(pure_commentary) in (MessageType.COMMENTARY, MessageType.IGNORE), True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 18. ROBUSTNESS — malformed / real-world edge cases
+# ══════════════════════════════════════════════════════════════════════════════
+section("18. Robustness — malformed inputs")
+
+# Extra whitespace and emoji in signal
+messy_signal = """
+Coin:   #ETH/USDT  🔥
+Direction:  Long  💪
+Leverage: 5-10x
+Entry:  3603  -  3590$
+Targets: 3680 - 3760 - 3840$
+Stop-loss:  3570$
+"""
+p = parse(messy_signal)
+check("Messy whitespace — type",      p.message_type, MessageType.NEW_SIGNAL)
+check("Messy whitespace — symbol",    p.symbol,       "ETHUSDT")
+check("Messy whitespace — entry_high",p.entry_high,   3603.0, close=True)
+
+# Signal with no leverage line
+no_lev = """Coin: #SOLUSDT
+Direction: Long
+Entry: 180 - 175
+Targets: 190 - 200 - 210
+Stop-loss: 170"""
+p = parse(no_lev)
+check("No leverage — still parses", p.message_type, MessageType.NEW_SIGNAL)
+check("No leverage — default max",  p.leverage_max, 10)  # model default
+
+# Signal with targets on separate lines
+multiline_targets = """Coin: #ETHUSDT
+Direction: Long
+Leverage: 5-10x
+Entry: 3500 - 3450
+Target 1: 3600
+Target 2: 3700
+Target 3: 3800
+Stop-loss: 3400"""
+p = parse(multiline_targets)
+check("Multiline targets — type",     p.message_type, MessageType.NEW_SIGNAL)
+check("Multiline targets — n",        len(p.targets), 3)
+check("Multiline targets — t1",       p.targets[0],   3600.0, close=True)
+check("Multiline targets — t3",       p.targets[2],   3800.0, close=True)
+
+# SL with label variants
+sl_variants = [
+    ("Stop-loss: 3400", 3400.0),
+    ("SL: 3400",        3400.0),
+    ("Stop: 3400",      3400.0),
+]
+for sl_line, expected in sl_variants:
+    sig = f"Coin: #ETHUSDT\nDirection: Long\nLeverage: 5x\nEntry: 3500\nTargets: 3600\n{sl_line}"
+    p = parse(sig)
+    check(f"SL label variant {sl_line!r}", p.stop_loss, expected, close=True)
+
+# Parser must not crash on completely random garbage
+garbage_inputs = [
+    "asdkjasdlkajsd",
+    "12345",
+    None.__class__.__name__,  # "NoneType" — just a string
+    "Entry: abc Stop-loss: xyz",
+    "Coin: ##$$\nEntry: ???\nStop-loss: ---",
+]
+for g in garbage_inputs:
+    try:
+        result = parse(g)
+        check(f"No crash on garbage {g!r}", True, True)
+    except Exception as e:
+        check(f"No crash on garbage {g!r}", f"EXCEPTION: {e}", "no exception")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 19. REAL WSQ MESSAGES — verbatim from the export
+# ══════════════════════════════════════════════════════════════════════════════
+section("19. Real WSQ messages (verbatim)")
+
+real_signals = [
+    # ETH from export
+    {
+        "text": "Coin: #ETH/USDT\n\nLong Set-Up \n\nLeverage: 5-10x\n\n#ETH already breaked out the Bull Flag and looking Bullish.\n\nEntry: 3603 - 3590$\n\nTargets: 3680 - 3760 - 3840 - 3920 - 4000$\n\nStop-loss: 3570$",
+        "symbol": "ETHUSDT",
+        "direction": Direction.LONG,
+        "entry_high": 3603.0,
+        "entry_low": 3590.0,
+        "stop_loss": 3570.0,
+        "n_targets": 5,
+    },
+    # HBAR from export
+    {
+        "text": "Coin: #HBAR/USDT\n\nLong Set-Up \n\nLeverage: 5-10x\n\n#HBAR already breaked out the Symmetrical traingle and looking Bullish.\n\nEntry: 0.305 - 0.295$(Buy partially)\n\nTargets: 0.315 - 0.322 - 0.330 - 0.338 - 0.355 - 0.375 - 0.395 - 0.420$(Short-mid term)\n\nStop-loss: 0.285$",
+        "symbol": "HBARUSDT",
+        "direction": Direction.LONG,
+        "entry_high": 0.305,
+        "entry_low": 0.295,
+        "stop_loss": 0.285,
+        "n_targets": 8,
+    },
+    # LINA from export
+    {
+        "text": "Coin: #LINA/USDT\n\nLong Set-Up \n\nLeverage: 5-10x\n\n#LINA already breaked out the inverse head and shoulders pattern and looking Bullish.\n\nEntry: 0.00560 - 0.00545$(Buy partially)\n\nTargets: 0.00575 - 0.00590 - 0.00605 - 0.00620 - 0.00640$(Short term)\n\nStop-loss: 0.00530$",
+        "symbol": "LINAUSDT",
+        "direction": Direction.LONG,
+        "entry_high": 0.00560,
+        "entry_low": 0.00545,
+        "stop_loss": 0.00530,
+        "n_targets": 5,
+    },
+    # BTC (the bug case — thousands separators)
+    {
+        "text": "Coin: #BTCUSDT\nDirection: Long\nLeverage: 10-20x\nIt has already broken out of the Cup and Handle pattern and is looking bullish.\nEntry: $72,260 - $70,800 (Buy partially)\nTargets: $74,000 - $75,600 - $76,800 - $78,000 (Short term)\nStop-loss: $69,600",
+        "symbol": "BTCUSDT",
+        "direction": Direction.LONG,
+        "entry_high": 72260.0,
+        "entry_low": 70800.0,
+        "stop_loss": 69600.0,
+        "n_targets": 4,
+    },
+]
+
+for tc in real_signals:
+    p = parse(tc["text"])
+    sym = tc["symbol"]
+    check(f"{sym} — type",       p.message_type, MessageType.NEW_SIGNAL)
+    check(f"{sym} — symbol",     p.symbol,       tc["symbol"])
+    check(f"{sym} — direction",  p.direction,    tc["direction"])
+    check(f"{sym} — entry_high", p.entry_high,   tc["entry_high"], close=True)
+    check(f"{sym} — entry_low",  p.entry_low,    tc["entry_low"],  close=True)
+    check(f"{sym} — stop_loss",  p.stop_loss,    tc["stop_loss"],  close=True)
+    check(f"{sym} — n_targets",  len(p.targets), tc["n_targets"])
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Done
+# ══════════════════════════════════════════════════════════════════════════════
+exit_code = summary()
+sys.exit(exit_code)

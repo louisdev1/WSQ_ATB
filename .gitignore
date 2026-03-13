@@ -1,7 +1,21 @@
+# environment
 .env
-*.session
-data/
-logs/
+
+# python
 __pycache__/
+*.pyc
+
+# virtual env
+venv/
+.env/
+
+# database
 *.db
+*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# logs
 *.log

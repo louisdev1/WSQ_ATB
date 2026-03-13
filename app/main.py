@@ -31,6 +31,128 @@ log = logging.getLogger(__name__)
 
 _TELEGRAM_RECONNECT_DELAY = 15
 
+# ANSI colours – degrade gracefully on terminals that don't support them
+_G   = "\033[92m"
+_Y   = "\033[93m"
+_R   = "\033[91m"
+_C   = "\033[96m"
+_W   = "\033[97m"
+_DIM = "\033[2m"
+_RST = "\033[0m"
+
+
+def _col(text: str, colour: str) -> str:
+    return f"{colour}{text}{_RST}"
+
+
+async def _print_startup_summary(db: Database, bybit: BybitClient):
+    """
+    Print a human-readable dashboard to stdout right after startup sync.
+    Only active trades (confirmed live on Bybit) are shown as active.
+    Stale trades were already closed by startup_position_sync before this runs.
+    """
+    W = 62
+    # get_active_trades only returns non-closed/cancelled/sl_hit states
+    trades = await db.get_active_trades()
+
+    lines = []
+    lines.append(_col("=" * W, _C))
+    lines.append(_col("  WSQ_ATB  \u2014  startup summary", _W))
+    lines.append(_col(
+        f"  mode: {'DRY RUN' if config.dry_run else 'LIVE'}  |  "
+        f"testnet: {config.bybit_testnet}  |  "
+        f"risk/trade: {config.risk_per_trade * 100:.1f}%",
+        _DIM,
+    ))
+    lines.append(_col("-" * W, _C))
+
+    balance = bybit.fetch_wallet_balance()
+    bal_col = _G if balance > 0 else _Y
+    lines.append(f"  {'Balance':<20} {_col(f'{balance:.2f} USDT', bal_col)}")
+    lines.append(_col("-" * W, _C))
+
+    if not trades:
+        lines.append(f"  {_col('No active trades', _DIM)}")
+    else:
+        lines.append(f"  {_col(f'{len(trades)} active trade(s)', _W)}")
+        lines.append("")
+
+        for t in trades:
+            sym       = t["symbol"]
+            direction = t["direction"].upper()
+            state     = t["state"]
+            avg_entry = t.get("avg_entry_price", 0) or 0.0
+            sl        = t.get("stop_loss", 0) or 0.0
+            targets   = t.get("targets", [])
+            tp_hit    = t.get("highest_tp_hit", 0) or 0
+
+            # Source of truth: Bybit live position
+            pos        = bybit.fetch_position(sym)
+            live_size  = float(pos.get("size", 0))       if pos else 0.0
+            mark_price = float(pos.get("markPrice", 0))  if pos else 0.0
+            upnl       = float(pos.get("unrealisedPnl", 0)) if pos else 0.0
+            live_sl    = float(pos.get("stopLoss") or 0) if pos else 0.0
+            live_entry = float(pos.get("avgPrice", 0))   if pos else avg_entry
+
+            dir_col = _G if direction == "LONG" else _R
+            seeded  = bool(t.get("entries_cancelled")) and live_entry > 0 and not targets
+
+            header = (f"  {_col(sym, _W)}  {_col(direction, dir_col)}  "
+                      f"{_col(f'[{state}]', _DIM)}")
+            if seeded:
+                header += _col("  \u26a0 no targets set", _Y)
+            lines.append(header)
+
+            if pos and live_size > 0:
+                pnl_col = _G if upnl >= 0 else _R
+                lines.append(f"    {'Size (Bybit)':<20} {live_size}")
+                lines.append(f"    {'Avg entry (Bybit)':<20} {live_entry:.6f}")
+                lines.append(f"    {'Mark price':<20} {mark_price:.6f}")
+                lines.append(f"    {'Unrealised PnL':<20} {_col(f'{upnl:+.4f} USDT', pnl_col)}")
+                if live_sl:
+                    lines.append(f"    {'Stop-loss (Bybit)':<20} {_col(f'{live_sl:.6f}', _R)}")
+                else:
+                    lines.append(f"    {'Stop-loss':<20} {_col('NOT SET  \u26a0', _R)}")
+            else:
+                # Should rarely appear here (startup_position_sync closes these),
+                # but guard just in case race condition on very fresh entry orders.
+                lines.append(f"    {_col('No live position yet (entry orders pending?)', _Y)}")
+                if sl:
+                    lines.append(f"    {'Stop-loss (DB)':<20} {_col(f'{sl:.6f}', _R)}")
+
+            # Open entry orders from Bybit REST (source of truth)
+            open_orders = bybit.fetch_open_orders(sym)
+            entry_orders = [o for o in open_orders if o.get("orderType") == "Limit"
+                            and o.get("side") in ("Buy", "Sell")
+                            and str(o.get("reduceOnly", "false")).lower() != "true"]
+            if entry_orders:
+                lines.append(f"    {'Open entries':<20} {len(entry_orders)} limit order(s)")
+                for o in entry_orders:
+                    lines.append(
+                        f"      \u25aa  {float(o.get('price', 0)):.6f}  "
+                        f"qty {float(o.get('qty', 0))}"
+                    )
+
+            if targets:
+                remaining = len(targets) - tp_hit
+                lines.append(
+                    f"    {'Targets':<20} {len(targets)} total  |  "
+                    f"hit: {tp_hit}  |  remaining: {remaining}"
+                )
+                for i, tp in enumerate(targets):
+                    marker = _col("\u2713", _G) if i < tp_hit else _col("\u25cb", _DIM)
+                    lines.append(f"      {marker}  TP{i + 1}: {tp:.6f}")
+            else:
+                lines.append(
+                    f"    {'Targets':<20} "
+                    + _col(f"none \u2014 send \u00abnew targets for {sym}\u00bb", _Y)
+                )
+
+            lines.append("")
+
+    lines.append(_col("=" * W, _C))
+    print("\n" + "\n".join(lines) + "\n", flush=True)
+
 
 async def _on_telegram_message(db: Database, trade_manager: TradeManager,
                                 raw_text: str, msg_id: int):
@@ -102,6 +224,11 @@ async def main():
         on_order=trade_manager.on_ws_order,
         dry_run=config.dry_run,
     )
+
+    # ── startup position sync ─────────────────────────────────────────────────
+    log.info("Running startup position sync…")
+    await trade_manager.startup_position_sync()
+    await _print_startup_summary(db, bybit)
 
     # ── run all tasks concurrently ────────────────────────────────────────────
     try:

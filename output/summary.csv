@@ -1,0 +1,2 @@
+total_trades,profitable_trades,loss_trades,profitable_percentage,loss_percentage,full_target_trades,partial_target_trades,percentage_full_targets,percentage_partial_targets,unresolved_profit_signals,percentage_unresolved_profit_signals,average_targets_per_trade,average_targets_hit,median_targets_hit
+289,207,82,71.62629757785467,28.373702422145332,51,156,17.647058823529413,53.979238754325266,14,4.844290657439446,6.211072664359862,2.629757785467128,2.0

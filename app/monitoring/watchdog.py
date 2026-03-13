@@ -99,6 +99,56 @@ async def _check_log_for_tracebacks(db) -> None:
         log.error("Log watcher error: %s", exc)
 
 
+# ── entry order timeout (48h) ─────────────────────────────────────────────────
+
+_ENTRY_TIMEOUT_HOURS = 48
+_ENTRY_TIMEOUT_SECS  = _ENTRY_TIMEOUT_HOURS * 3600
+
+
+async def _check_entry_timeouts(db, bybit) -> None:
+    """
+    Cancel open entry orders for any trade where:
+      - entries_cancelled is still 0 (entries are still live)
+      - the signal is older than 48h
+      - no position has filled yet (filled_size == 0)
+
+    If a position is already partially or fully filled we leave entries alone —
+    the ladder is still working and TP1 will cancel them when it fires.
+    """
+    try:
+        trades = await db.get_active_trades()
+        now = datetime.now(timezone.utc)
+        for trade in trades:
+            if trade.get("entries_cancelled"):
+                continue
+            if (trade.get("filled_size") or 0) > 0:
+                continue  # position already filling — let TP1 handle it
+
+            created_raw = trade.get("created_at") or trade.get("updated_at")
+            if not created_raw:
+                continue
+            created = datetime.fromisoformat(str(created_raw)).replace(tzinfo=timezone.utc)
+            age_secs = (now - created).total_seconds()
+
+            if age_secs >= _ENTRY_TIMEOUT_SECS:
+                sym = trade["symbol"]
+                age_h = age_secs / 3600
+                log.warning(
+                    "Entry timeout: %s signal is %.1fh old with no fill — "
+                    "cancelling entry orders", sym, age_h,
+                )
+                bybit.cancel_entry_orders(sym)
+                await db.update_trade(trade["id"], entries_cancelled=1)
+                await send_alert(
+                    f"entry_timeout_{sym}",
+                    f"⏱ Entry timeout for {sym}: signal was {age_h:.1f}h old "
+                    f"with no position filled. Entry orders cancelled.",
+                    db,
+                )
+    except Exception as exc:
+        log.error("Entry timeout check error: %s", exc)
+
+
 # ── unprotected position check ────────────────────────────────────────────────
 
 async def _check_unprotected_positions(db, bybit) -> None:
@@ -159,6 +209,9 @@ async def watchdog_loop(db, bybit, trade_manager):
 
             # Unprotected positions
             await _check_unprotected_positions(db, bybit)
+
+            # Entry order timeout (48h)
+            await _check_entry_timeouts(db, bybit)
 
             # Sync fills
             if trade_manager:

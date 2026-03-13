@@ -1,0 +1,146 @@
+import json
+import re
+import pandas as pd
+from pathlib import Path
+
+JSON_PATH = r"C:\Users\louis\OneDrive\Louis\WSQ_ATB\Trade_Predictor_Setup\result.json"
+TRADES_PATH = r"output/trades_dataset.csv"
+OUTPUT_PATH = r"output/loss_audit.csv"
+
+MAX_MESSAGES_AHEAD = 120
+
+EXTRA_PROFIT_PATTERNS = [
+    r"\btarget\s*\d+\b",
+    r"\btargets?\s*[\d,\s]+(?:done|hit|complete|completed)\b",
+    r"\btp\s*\d+\b",
+    r"\btp\d+\b",
+    r"\ball targets done\b",
+    r"\bprofit\b",
+    r"\bprofits\b",
+    r"\bbook profit\b",
+    r"\bbooked profit\b",
+    r"\bbook profits\b",
+    r"\bbooked profits\b",
+    r"\benjoy the profits\b",
+    r"\b\d+%\s*profit\b",
+    r"\b\d+%\s*profits\b",
+]
+
+PROFIT_RE = re.compile("|".join(EXTRA_PROFIT_PATTERNS), re.IGNORECASE)
+
+
+def normalize_text(text_field):
+    if isinstance(text_field, str):
+        return text_field
+
+    if isinstance(text_field, list):
+        parts = []
+        for item in text_field:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                parts.append(str(item.get("text", "")))
+            else:
+                parts.append(str(item))
+        return "".join(parts)
+
+    return ""
+
+
+def load_messages(json_path):
+    with open(json_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data.get("messages", [])
+
+
+def find_message_index(messages, message_id):
+    for idx, msg in enumerate(messages):
+        if int(msg.get("id", -1)) == int(message_id):
+            return idx
+    return -1
+
+
+def main():
+    messages = load_messages(JSON_PATH)
+    df = pd.read_csv(TRADES_PATH)
+
+    losses = df[df["was_loss"] == True].copy()
+
+    print(f"Total losses: {len(losses)}")
+    print()
+
+    audit_rows = []
+
+    for _, row in losses.iterrows():
+        message_id = int(row["message_id"])
+        symbol = str(row["symbol"])
+        pair = str(row["pair"])
+
+        idx = find_message_index(messages, message_id)
+        if idx == -1:
+            continue
+
+        signal_text = normalize_text(messages[idx].get("text", ""))
+        future_slice = messages[idx + 1: idx + 1 + MAX_MESSAGES_AHEAD]
+
+        suspicious_matches = []
+
+        for msg in future_slice:
+            if msg.get("type") != "message":
+                continue
+
+            msg_id = int(msg.get("id", 0))
+            text = normalize_text(msg.get("text", ""))
+
+            # Alleen dingen pakken die waarschijnlijk over dezelfde trade gaan
+            upper = text.upper()
+            same_symbol = symbol in upper
+            same_pair_slash = f"{symbol}/{pair}" in upper
+            same_pair_compact = f"{symbol}{pair}" in upper
+            reply_match = int(msg.get("reply_to_message_id", -1)) == message_id
+
+            related = same_symbol or same_pair_slash or same_pair_compact or reply_match
+
+            if not related:
+                continue
+
+            if PROFIT_RE.search(text):
+                suspicious_matches.append({
+                    "update_id": msg_id,
+                    "update_text": text[:500]
+                })
+
+        audit_rows.append({
+            "message_id": message_id,
+            "symbol": symbol,
+            "pair": pair,
+            "signal_text": signal_text[:800],
+            "suspicious_update_count": len(suspicious_matches),
+            "suspicious_update_ids": [x["update_id"] for x in suspicious_matches],
+            "suspicious_update_texts": [x["update_text"] for x in suspicious_matches],
+        })
+
+    audit_df = pd.DataFrame(audit_rows)
+    Path("output").mkdir(parents=True, exist_ok=True)
+    audit_df.to_csv(OUTPUT_PATH, index=False)
+
+    print(f"Saved loss audit to: {OUTPUT_PATH}")
+    print()
+
+    suspicious_total = (audit_df["suspicious_update_count"] > 0).sum()
+    print(f"Losses with suspicious profit-like updates: {suspicious_total} / {len(audit_df)}")
+
+    if not audit_df.empty:
+        print()
+        print("Examples:")
+        examples = audit_df[audit_df["suspicious_update_count"] > 0].head(10)
+        for _, ex in examples.iterrows():
+            print("-" * 80)
+            print(f"Signal message_id: {ex['message_id']} | {ex['symbol']}/{ex['pair']}")
+            print(f"Suspicious update ids: {ex['suspicious_update_ids']}")
+            print(f"Signal text: {ex['signal_text'][:250]}")
+            print(f"Update texts: {ex['suspicious_update_texts']}")
+
+
+if __name__ == "__main__":
+    main()

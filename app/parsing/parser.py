@@ -28,9 +28,16 @@ def _clean(text: str) -> str:
 
 
 def _extract_symbol(text: str) -> str:
-    """Pull a crypto symbol from text like #AXLUSDT, AXLUSDT, $AXLUSDT, #1000LUNCUSDT."""
-    # Match standard USDT pairs including 1000x-prefixed ones
-    m = re.search(r"#?\$?([A-Z0-9]{2,20}USDT)", text.upper())
+    """Pull a crypto symbol from text like #AXLUSDT, AXLUSDT, $AXLUSDT, #1000LUNCUSDT.
+    Also handles slash format: #ETH/USDT → ETHUSDT, #HBAR/USDT → HBARUSDT.
+    """
+    upper = text.upper()
+    # Handle slash format first: #ETH/USDT or ETH/USDT → ETHUSDT
+    m = re.search(r"#?\$?([A-Z0-9]{2,15})/USDT", upper)
+    if m:
+        return m.group(1) + "USDT"
+    # Standard concatenated format: BTCUSDT, #CFXUSDT, 1MBABYDOGEUSDT
+    m = re.search(r"#?\$?([A-Z0-9]{2,20}USDT)", upper)
     if m:
         return m.group(1).lstrip("$#")
     # Fallback: any ALL-CAPS word 3-12 chars
@@ -38,24 +45,52 @@ def _extract_symbol(text: str) -> str:
     return m.group(1) if m else ""
 
 
+def _normalise_number(s: str) -> float:
+    """
+    Convert a raw number string to float, correctly handling both:
+      - Thousands separators:  "72,260"  → 72260.0
+      - Decimal separators:    "0,0412"  → 0.0412   (European style)
+
+    Rules (in order):
+      1. If the integer part (before first comma) is 0, it's always a decimal.
+         e.g. "0,295" → 0.295, "0,0412" → 0.0412
+      2. If a comma is followed by exactly 3 digits with no further separator,
+         it's a thousands separator. e.g. "72,260" → 72260, "1,000,000" → 1000000
+      3. Otherwise treat comma as decimal separator (European style).
+    """
+    s = s.strip().lstrip("$")
+    # Rule 1: integer part is 0 → must be decimal
+    if re.match(r"^0,", s):
+        return float(s.replace(",", "."))
+    # Rule 2: thousands separator — comma(s) each followed by exactly 3 digits
+    if re.search(r",\d{3}(?!\d|[.,])", s):
+        s = s.replace(",", "")
+        return float(s)
+    # Rule 3: decimal separator
+    return float(s.replace(",", "."))
+
+
 def _extract_price(text: str) -> float:
-    """Extract first floating-point number, stripping $ signs."""
-    m = re.search(r"\$?([\d]+[.,][\d]+)", text)
+    """Extract first price from text, correctly handling thousands separators."""
+    m = re.search(r"\$?([\d][\d,\.]*)", text)
     if m:
-        return float(m.group(1).replace(",", "."))
-    m = re.search(r"\$?([\d]+)", text)
-    return float(m.group(1)) if m else 0.0
+        try:
+            return _normalise_number(m.group(1))
+        except ValueError:
+            pass
+    return 0.0
 
 
 def _extract_prices(text: str) -> List[float]:
-    """Extract all prices from a line, stripping $ and handling ranges."""
-    # Remove parenthetical notes like (Short term), (Enter partially) before extracting
+    """Extract all prices from a line, correctly handling thousands separators."""
+    # Remove parenthetical notes like (Short term), (Enter partially)
     text = re.sub(r"\([^)]*\)", "", text)
-    nums = re.findall(r"\$?([\d]+(?:[.,][\d]+)?)", text)
+    # Match numbers that may contain commas or dots (e.g. 72,260 or 0.00412)
+    nums = re.findall(r"\$?([\d][\d,\.]*\d|\d)", text)
     result = []
     for n in nums:
         try:
-            result.append(float(n.replace(",", ".")))
+            result.append(_normalise_number(n))
         except ValueError:
             pass
     return result
@@ -186,6 +221,12 @@ def _parse_new_signal(raw: str, msg_id: int) -> NewSignal:
             sig.symbol = _extract_symbol(clean_line)
 
         elif re.match(r"direction\s*:", low):
+            d = _direction(line)
+            if d:
+                sig.direction = d
+
+        elif sig.direction is None and re.search(r"\b(long|short|buy|sell|bullish|bearish)\b", low):
+            # Infer direction from body lines like "Long Set-Up" when no Direction: field
             d = _direction(line)
             if d:
                 sig.direction = d

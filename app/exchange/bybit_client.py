@@ -85,6 +85,27 @@ class BybitClient:
             log.warning("get_qty_step error %s: %s — defaulting to 0.001", symbol, exc)
             return 0.001
 
+    def get_tick_size(self, symbol: str) -> float:
+        """
+        Fetch the minimum price tick size for a symbol from Bybit instrument info.
+        E.g. BTCUSDT = 0.1, AXLUSDT = 0.0001, NEOUSDT = 0.001
+        Result is cached alongside qty_step.
+        """
+        if not hasattr(self, "_tick_size_cache"):
+            self._tick_size_cache = {}
+        if symbol in self._tick_size_cache:
+            return self._tick_size_cache[symbol]
+        try:
+            resp = self._session.get_instruments_info(category="linear", symbol=symbol)
+            info = resp.get("result", {}).get("list", [{}])[0]
+            tick = float(info.get("priceFilter", {}).get("tickSize", "0.0001"))
+            self._tick_size_cache[symbol] = tick
+            log.debug("tick_size for %s = %s", symbol, tick)
+            return tick
+        except Exception as exc:
+            log.warning("get_tick_size error %s: %s — defaulting to 0.0001", symbol, exc)
+            return 0.0001
+
     def _round_qty(self, symbol: str, qty: float) -> float:
         """Floor qty to the symbol's allowed step size."""
         step = self.get_qty_step(symbol)
@@ -92,6 +113,14 @@ class BybitClient:
             return qty
         factor = 1.0 / step
         return math.floor(qty * factor) / factor
+
+    def _round_price(self, symbol: str, price: float) -> float:
+        """Round price to the symbol's tick size (standard rounding, not floor)."""
+        tick = self.get_tick_size(symbol)
+        if tick <= 0:
+            return price
+        factor = 1.0 / tick
+        return round(price * factor) / factor
 
     # ── order placement ───────────────────────────────────────────────────────
 
@@ -185,8 +214,38 @@ class BybitClient:
             self._ok()
             return True
         except Exception as exc:
+            msg = str(exc)
+            if "10001" in msg or "symbol not exist" in msg.lower() or "symbol invalid" in msg.lower():
+                log.debug("cancel_orders_for_symbol %s: symbol not on Bybit (delisted?) – skipping", symbol)
+                return True  # treat as success — nothing to cancel
             self._fail(f"cancel_orders_for_symbol {symbol}", exc)
             return False
+
+    def cancel_entry_orders(self, symbol: str) -> int:
+        """
+        Cancel only open non-reduceOnly limit orders (entry ladder orders).
+        Does NOT touch TP orders or the position-level stop-loss.
+        Returns the number of orders successfully cancelled.
+        """
+        if self._dry_run:
+            log.info("[DRY] cancel_entry_orders %s", symbol)
+            return 0
+        try:
+            open_orders = self.fetch_open_orders(symbol)
+            entry_orders = [
+                o for o in open_orders
+                if str(o.get("reduceOnly", "false")).lower() != "true"
+                and o.get("orderType") == "Limit"
+            ]
+            cancelled = 0
+            for o in entry_orders:
+                order_id = o.get("orderId", "")
+                if order_id and self.cancel_order(symbol, order_id):
+                    cancelled += 1
+            return cancelled
+        except Exception as exc:
+            self._fail(f"cancel_entry_orders {symbol}", exc)
+            return 0
 
     # ── fetch ─────────────────────────────────────────────────────────────────
 
@@ -209,6 +268,13 @@ class BybitClient:
                     return pos
             return None
         except Exception as exc:
+            msg = str(exc)
+            # ErrCode 10001 = symbol does not exist (delisted / renamed).
+            # Treat as "no position" rather than a connectivity failure so the
+            # watchdog doesn't fire Bybit-down alerts for stale DB records.
+            if "10001" in msg or "symbol not exist" in msg.lower():
+                log.debug("fetch_position %s: symbol not found on Bybit (delisted?) – treating as no position", symbol)
+                return None
             self._fail(f"fetch_position {symbol}", exc)
             return None
 
@@ -268,6 +334,19 @@ class BybitClient:
             return True
         order_id = self.place_market_order(symbol, side, size, reduce_only=True)
         return order_id is not None
+
+    def fetch_all_positions(self) -> list:
+        """Return all open perpetual positions (size > 0)."""
+        try:
+            resp = self._session.get_positions(category="linear", settleCoin="USDT")
+            self._ok()
+            return [
+                p for p in resp.get("result", {}).get("list", [])
+                if float(p.get("size", 0)) > 0
+            ]
+        except Exception as exc:
+            self._fail("fetch_all_positions", exc)
+            return []
 
     def close_all_positions(self) -> bool:
         if self._dry_run:
