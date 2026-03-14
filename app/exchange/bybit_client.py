@@ -126,19 +126,25 @@ class BybitClient:
 
     def place_limit_order(self, symbol: str, side: str, qty: float,
                           price: float, reduce_only: bool = False,
-                          order_type_label: str = "limit") -> Optional[str]:
-        """Returns bybit order_id or None on failure."""
+                          order_type_label: str = "limit",
+                          stop_loss: Optional[float] = None) -> Optional[str]:
+        """Returns bybit order_id or None on failure.
+
+        If stop_loss is provided it is attached directly to the order so the
+        SL activates the instant the entry fills — no separate move_stop_loss
+        call needed and no risk of the "zero position" ErrCode 10001.
+        """
         if self._dry_run:
             fake_id = f"DRY-{symbol}-{side}-{price}"
-            log.info("[DRY] place_limit_order %s %s qty=%s price=%s → %s",
-                     symbol, side, qty, price, fake_id)
+            log.info("[DRY] place_limit_order %s %s qty=%s price=%s sl=%s → %s",
+                     symbol, side, qty, price, stop_loss, fake_id)
             return fake_id
         try:
             qty = self._round_qty(symbol, qty)
             if qty <= 0:
                 log.warning("place_limit_order %s: qty rounds to 0 after step adjustment", symbol)
                 return None
-            resp = self._session.place_order(
+            kwargs = dict(
                 category="linear",
                 symbol=symbol,
                 side=side,
@@ -148,9 +154,14 @@ class BybitClient:
                 reduceOnly=reduce_only,
                 timeInForce="GTC",
             )
+            if stop_loss and stop_loss > 0:
+                kwargs["stopLoss"] = str(self._round_price(symbol, stop_loss))
+                kwargs["slTriggerBy"] = "LastPrice"
+            resp = self._session.place_order(**kwargs)
             order_id = resp["result"]["orderId"]
-            log.info("Placed limit order %s %s %s qty=%s price=%s → orderId=%s",
-                     order_type_label, symbol, side, qty, price, order_id)
+            sl_str = f" sl={stop_loss}" if stop_loss else ""
+            log.info("Placed limit order %s %s %s qty=%s price=%s%s → orderId=%s",
+                     order_type_label, symbol, side, qty, price, sl_str, order_id)
             self._ok()
             return order_id
         except Exception as exc:

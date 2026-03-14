@@ -43,10 +43,16 @@ log = logging.getLogger(__name__)
 
 # ── dynamic entry ladder ──────────────────────────────────────────────────────
 
-def _calc_ladder(entry_low: float, entry_high: float) -> List[Tuple]:
+def _calc_ladder(entry_low: float, entry_high: float, direction: str = "long") -> List[Tuple]:
     """
     Returns a list of (price, fraction) tuples for entry orders.
-    Fixed distribution: entry_high 65% / midpoint 25% / entry_low 10%.
+
+    LONG:  entry_high 65% / midpoint 25% / entry_low 10%
+           Price falls into the range — highest price fills first, most size there.
+
+    SHORT: entry_low 65% / midpoint 25% / entry_high 10%
+           Price rises into the range — lowest price fills first, most size there.
+
     Collapses to single order at full qty for single-price signals.
     """
     if entry_low <= 0 or entry_high <= entry_low:
@@ -54,6 +60,12 @@ def _calc_ladder(entry_low: float, entry_high: float) -> List[Tuple]:
         return [(price, 1.0)]
 
     midpoint = (entry_low + entry_high) / 2
+    if direction.lower() in ("short", "sell"):
+        return [
+            (entry_low,  0.65),
+            (midpoint,   0.25),
+            (entry_high, 0.10),
+        ]
     return [
         (entry_high, 0.65),
         (midpoint,   0.25),
@@ -310,7 +322,7 @@ class TradeManager:
         })
 
         side   = _entry_side(sig.direction.value)
-        ladder = _calc_ladder(sig.entry_low, sig.entry_high)
+        ladder = _calc_ladder(sig.entry_low, sig.entry_high, sig.direction.value)
         qty_step   = self._bybit.get_qty_step(sig.symbol)
         tick_size  = self._bybit.get_tick_size(sig.symbol)
         total_qty  = self._bybit._round_qty(sig.symbol, qty)
@@ -321,8 +333,13 @@ class TradeManager:
             order_qty = _floor_frac(total_qty, fraction, qty_step)
             if order_qty <= 0 or price <= 0:
                 continue
+            # Attach SL directly to each entry order so it activates the instant
+            # that order fills — no separate move_stop_loss needed and no risk of
+            # ErrCode 10001 "can not set tp/sl for zero position".
             order_id = self._bybit.place_limit_order(
-                sig.symbol, side, order_qty, price, order_type_label="entry"
+                sig.symbol, side, order_qty, price,
+                order_type_label="entry",
+                stop_loss=sig.stop_loss if sig.stop_loss > 0 else None,
             )
             if order_id:
                 orders_placed += 1
@@ -331,8 +348,7 @@ class TradeManager:
                 )
 
         if orders_placed == 0:
-            # All entry orders rejected — clean up the DB record so the signal
-            # can be retried or manually handled. Don't set SL on a zero position.
+            # All entry orders rejected — clean up DB record so signal can be retried.
             await self._db.update_trade_state(trade_id, "cancelled")
             log.error(
                 "Trade FAILED: %s — all %d entry order(s) rejected by Bybit. "
@@ -341,9 +357,9 @@ class TradeManager:
             )
             return
 
-        # Only set SL if at least one entry order landed on Bybit.
-        # move_stop_loss on a zero position returns ErrCode 10001.
-        self._bybit.move_stop_loss(sig.symbol, sig.stop_loss)
+        # SL is now embedded in each entry order — no standalone move_stop_loss needed.
+        # on_ws_execution will call move_stop_loss on first fill to lock in the
+        # position-level SL (belt-and-suspenders for WS fill detection).
 
         await self._db.update_trade_state(trade_id, "active")
         log.info(

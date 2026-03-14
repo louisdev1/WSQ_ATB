@@ -1,0 +1,1085 @@
+{
+  "bitcoin_01-01-2022": null,
+  "bitcoin_01-02-2025": null,
+  "bitcoin_01-03-2022": null,
+  "bitcoin_01-03-2025": null,
+  "bitcoin_01-04-2023": null,
+  "bitcoin_01-04-2024": null,
+  "bitcoin_01-05-2023": null,
+  "bitcoin_01-05-2025": {
+    "price": 94235.75331048167,
+    "market_cap": 1871350362569.0933,
+    "total_volume": 26541700309.366146
+  },
+  "bitcoin_01-06-2025": {
+    "price": 104687.50742934884,
+    "market_cap": 2080467809295.7695,
+    "total_volume": 20432694555.09522
+  },
+  "bitcoin_01-07-2023": null,
+  "bitcoin_01-07-2025": {
+    "price": 107132.79910701896,
+    "market_cap": 2130471589191.581,
+    "total_volume": 22489515582.41552
+  },
+  "bitcoin_01-08-2024": null,
+  "bitcoin_01-08-2025": {
+    "price": 115700.00243915782,
+    "market_cap": 2302199162425.1206,
+    "total_volume": 45238249453.35885
+  },
+  "bitcoin_01-09-2023": null,
+  "bitcoin_01-10-2023": null,
+  "bitcoin_01-10-2025": {
+    "price": 114024.22783550054,
+    "market_cap": 2272137555069.4507,
+    "total_volume": 57718901820.70616
+  },
+  "bitcoin_01-11-2022": null,
+  "bitcoin_01-11-2024": null,
+  "bitcoin_01-11-2025": {
+    "price": 109573.90555629115,
+    "market_cap": 2185193896779.3408,
+    "total_volume": 58800487940.5146
+  },
+  "bitcoin_01-12-2021": null,
+  "bitcoin_01-12-2022": null,
+  "bitcoin_02-01-2024": null,
+  "bitcoin_02-01-2026": {
+    "price": 88727.67004249741,
+    "market_cap": 1771365149347.3962,
+    "total_volume": 21163124465.205833
+  },
+  "bitcoin_02-02-2025": null,
+  "bitcoin_02-03-2022": null,
+  "bitcoin_02-03-2024": null,
+  "bitcoin_02-03-2025": null,
+  "bitcoin_02-04-2023": null,
+  "bitcoin_02-05-2023": null,
+  "bitcoin_02-05-2024": null,
+  "bitcoin_02-07-2024": null,
+  "bitcoin_02-09-2023": null,
+  "bitcoin_02-10-2023": null,
+  "bitcoin_02-11-2022": null,
+  "bitcoin_02-11-2023": null,
+  "bitcoin_02-11-2024": null,
+  "bitcoin_02-12-2022": null,
+  "bitcoin_02-12-2023": null,
+  "bitcoin_02-12-2025": {
+    "price": 86281.49519776918,
+    "market_cap": 1723547230444.7913,
+    "total_volume": 92988982967.24597
+  },
+  "bitcoin_03-01-2022": null,
+  "bitcoin_03-01-2024": null,
+  "bitcoin_03-02-2024": null,
+  "bitcoin_03-03-2022": null,
+  "bitcoin_03-03-2023": null,
+  "bitcoin_03-04-2022": null,
+  "bitcoin_03-04-2024": null,
+  "bitcoin_03-05-2022": null,
+  "bitcoin_03-05-2023": null,
+  "bitcoin_03-05-2025": {
+    "price": 96855.5681343944,
+    "market_cap": 1923251765866.1472,
+    "total_volume": 23276376191.483967
+  },
+  "bitcoin_03-06-2025": {
+    "price": 105884.74263221149,
+    "market_cap": 2104229403094.936,
+    "total_volume": 26313843058.73954
+  },
+  "bitcoin_03-07-2024": null,
+  "bitcoin_03-08-2022": null,
+  "bitcoin_03-08-2023": null,
+  "bitcoin_03-08-2025": {
+    "price": 112554.90232221723,
+    "market_cap": 2240413983638.112,
+    "total_volume": 33543439044.09785
+  },
+  "bitcoin_03-10-2022": null,
+  "bitcoin_03-11-2022": null,
+  "bitcoin_03-11-2024": null,
+  "bitcoin_03-12-2025": {
+    "price": 91344.73275150165,
+    "market_cap": 1824843161126.1372,
+    "total_volume": 83138039128.81346
+  },
+  "bitcoin_04-01-2025": null,
+  "bitcoin_04-02-2022": null,
+  "bitcoin_04-02-2026": {
+    "price": 75638.95670207398,
+    "market_cap": 1512165605443.8088,
+    "total_volume": 73734215653.24066
+  },
+  "bitcoin_04-03-2023": null,
+  "bitcoin_04-05-2022": null,
+  "bitcoin_04-05-2023": null,
+  "bitcoin_04-05-2024": null,
+  "bitcoin_04-06-2023": null,
+  "bitcoin_04-06-2024": null,
+  "bitcoin_04-08-2025": {
+    "price": 114199.10966460757,
+    "market_cap": 2272802075267.0376,
+    "total_volume": 24689273719.085533
+  },
+  "bitcoin_04-09-2022": null,
+  "bitcoin_04-09-2024": null,
+  "bitcoin_04-09-2025": {
+    "price": 111711.51977725117,
+    "market_cap": 2225365905592.233,
+    "total_volume": 36406080683.42747
+  },
+  "bitcoin_04-10-2023": null,
+  "bitcoin_04-11-2024": null,
+  "bitcoin_04-12-2022": null,
+  "bitcoin_04-12-2024": null,
+  "bitcoin_05-01-2024": null,
+  "bitcoin_05-01-2026": {
+    "price": 91373.21588108438,
+    "market_cap": 1824986876689.233,
+    "total_volume": 31050236622.948975
+  },
+  "bitcoin_05-02-2022": null,
+  "bitcoin_05-03-2022": null,
+  "bitcoin_05-03-2024": null,
+  "bitcoin_05-05-2023": null,
+  "bitcoin_05-05-2024": null,
+  "bitcoin_05-05-2025": {
+    "price": 94326.62048529249,
+    "market_cap": 1872812442453.0322,
+    "total_volume": 14903122945.616686
+  },
+  "bitcoin_05-06-2023": null,
+  "bitcoin_05-06-2024": null,
+  "bitcoin_05-06-2025": {
+    "price": 104812.9182188067,
+    "market_cap": 2083148839111.2068,
+    "total_volume": 25812143562.797962
+  },
+  "bitcoin_05-08-2022": null,
+  "bitcoin_05-08-2023": null,
+  "bitcoin_05-08-2025": {
+    "price": 115138.68613070177,
+    "market_cap": 2292395156144.1514,
+    "total_volume": 32488023582.82734
+  },
+  "bitcoin_05-09-2021": null,
+  "bitcoin_05-09-2023": null,
+  "bitcoin_05-11-2022": null,
+  "bitcoin_05-11-2024": null,
+  "bitcoin_06-01-2024": null,
+  "bitcoin_06-02-2023": null,
+  "bitcoin_06-03-2022": null,
+  "bitcoin_06-04-2024": null,
+  "bitcoin_06-04-2025": {
+    "price": 83595.88550177493,
+    "market_cap": 1656020067997.187,
+    "total_volume": 14910400035.531416
+  },
+  "bitcoin_06-05-2023": null,
+  "bitcoin_06-05-2024": null,
+  "bitcoin_06-05-2025": {
+    "price": 94758.8237105546,
+    "market_cap": 1882511286487.958,
+    "total_volume": 24086456278.203846
+  },
+  "bitcoin_06-06-2023": null,
+  "bitcoin_06-07-2022": null,
+  "bitcoin_06-07-2023": null,
+  "bitcoin_06-07-2025": {
+    "price": 108217.46849992426,
+    "market_cap": 2152344091389.654,
+    "total_volume": 10042942280.966904
+  },
+  "bitcoin_06-08-2022": null,
+  "bitcoin_06-08-2025": {
+    "price": 114128.35408881678,
+    "market_cap": 2271583255077.356,
+    "total_volume": 37316213251.97167
+  },
+  "bitcoin_06-09-2024": null,
+  "bitcoin_06-10-2023": null,
+  "bitcoin_06-10-2025": {
+    "price": 123506.18520027678,
+    "market_cap": 2461221856764.1885,
+    "total_volume": 72011486031.26575
+  },
+  "bitcoin_06-11-2021": null,
+  "bitcoin_06-11-2023": null,
+  "bitcoin_06-11-2024": null,
+  "bitcoin_06-12-2023": null,
+  "bitcoin_06-12-2024": null,
+  "bitcoin_07-01-2024": null,
+  "bitcoin_07-02-2022": null,
+  "bitcoin_07-02-2023": null,
+  "bitcoin_07-02-2025": null,
+  "bitcoin_07-03-2022": null,
+  "bitcoin_07-03-2023": null,
+  "bitcoin_07-03-2024": null,
+  "bitcoin_07-03-2025": null,
+  "bitcoin_07-03-2026": {
+    "price": 68148.28339966535,
+    "market_cap": 1364073902597.7644,
+    "total_volume": 46427994894.47989
+  },
+  "bitcoin_07-04-2023": null,
+  "bitcoin_07-06-2023": null,
+  "bitcoin_07-07-2023": null,
+  "bitcoin_07-08-2022": null,
+  "bitcoin_07-08-2025": {
+    "price": 115022.09576830892,
+    "market_cap": 2289295036528.6577,
+    "total_volume": 32052509631.058872
+  },
+  "bitcoin_07-09-2023": null,
+  "bitcoin_07-09-2025": {
+    "price": 110209.1888247784,
+    "market_cap": 2195288669199.568,
+    "total_volume": 19340758702.076332
+  },
+  "bitcoin_07-10-2023": null,
+  "bitcoin_07-11-2022": null,
+  "bitcoin_07-11-2024": null,
+  "bitcoin_07-11-2025": {
+    "price": 101322.6402945857,
+    "market_cap": 2019147576692.263,
+    "total_volume": 64118217249.57436
+  },
+  "bitcoin_07-12-2022": null,
+  "bitcoin_07-12-2023": null,
+  "bitcoin_07-12-2025": {
+    "price": 89244.7620814118,
+    "market_cap": 1781194798199.8435,
+    "total_volume": 24818678152.49986
+  },
+  "bitcoin_08-01-2023": null,
+  "bitcoin_08-01-2025": null,
+  "bitcoin_08-02-2024": null,
+  "bitcoin_08-03-2023": null,
+  "bitcoin_08-03-2024": null,
+  "bitcoin_08-03-2026": {
+    "price": 67271.1907777184,
+    "market_cap": 1345067153653.0642,
+    "total_volume": 24588849466.218872
+  },
+  "bitcoin_08-04-2024": null,
+  "bitcoin_08-05-2022": null,
+  "bitcoin_08-05-2023": null,
+  "bitcoin_08-05-2024": null,
+  "bitcoin_08-05-2025": {
+    "price": 97026.49376966801,
+    "market_cap": 1927134557858.269,
+    "total_volume": 64376174032.08048
+  },
+  "bitcoin_08-06-2023": null,
+  "bitcoin_08-06-2024": null,
+  "bitcoin_08-07-2023": null,
+  "bitcoin_08-07-2025": {
+    "price": 108300.71675785031,
+    "market_cap": 2153777588647.4504,
+    "total_volume": 25493246475.80407
+  },
+  "bitcoin_08-08-2022": null,
+  "bitcoin_08-08-2024": null,
+  "bitcoin_08-08-2025": {
+    "price": 117463.47451085235,
+    "market_cap": 2337732858703.5435,
+    "total_volume": 38289687095.00489
+  },
+  "bitcoin_08-09-2025": {
+    "price": 111131.9923868407,
+    "market_cap": 2213764479139.3647,
+    "total_volume": 22147049159.335133
+  },
+  "bitcoin_08-10-2023": null,
+  "bitcoin_08-11-2021": null,
+  "bitcoin_08-11-2022": null,
+  "bitcoin_08-11-2025": {
+    "price": 103396.084215925,
+    "market_cap": 2063021740892.1375,
+    "total_volume": 93627003785.31018
+  },
+  "bitcoin_09-01-2023": null,
+  "bitcoin_09-01-2025": null,
+  "bitcoin_09-02-2023": null,
+  "bitcoin_09-02-2024": null,
+  "bitcoin_09-02-2026": {
+    "price": 70542.37329463876,
+    "market_cap": 1411671712614.3147,
+    "total_volume": 42782981463.70375
+  },
+  "bitcoin_09-03-2022": null,
+  "bitcoin_09-03-2024": null,
+  "bitcoin_09-03-2025": null,
+  "bitcoin_09-04-2022": null,
+  "bitcoin_09-04-2023": null,
+  "bitcoin_09-05-2023": null,
+  "bitcoin_09-05-2025": {
+    "price": 103076.27555512934,
+    "market_cap": 2047883753852.6929,
+    "total_volume": 50020047720.65604
+  },
+  "bitcoin_09-06-2023": null,
+  "bitcoin_09-06-2025": {
+    "price": 105692.24740699006,
+    "market_cap": 2100654769399.4705,
+    "total_volume": 16044679696.270103
+  },
+  "bitcoin_09-07-2025": {
+    "price": 108953.19187727802,
+    "market_cap": 2167049398056.7417,
+    "total_volume": 20488865138.27645
+  },
+  "bitcoin_09-08-2023": null,
+  "bitcoin_09-08-2024": null,
+  "bitcoin_09-09-2023": null,
+  "bitcoin_09-09-2024": null,
+  "bitcoin_09-10-2023": null,
+  "bitcoin_09-10-2024": null,
+  "bitcoin_09-11-2021": null,
+  "bitcoin_09-11-2022": null,
+  "bitcoin_09-11-2025": {
+    "price": 102290.13714655167,
+    "market_cap": 2039995976869.1492,
+    "total_volume": 51095924202.31797
+  },
+  "bitcoin_09-12-2024": null,
+  "bitcoin_09-12-2025": {
+    "price": 90618.0535204608,
+    "market_cap": 1808394676576.639,
+    "total_volume": 45466493941.40448
+  },
+  "bitcoin_10-01-2025": null,
+  "bitcoin_10-02-2024": null,
+  "bitcoin_10-02-2025": null,
+  "bitcoin_10-02-2026": {
+    "price": 70096.40692272567,
+    "market_cap": 1400898153463.9268,
+    "total_volume": 56115089203.17752
+  },
+  "bitcoin_10-04-2023": null,
+  "bitcoin_10-05-2023": null,
+  "bitcoin_10-05-2024": null,
+  "bitcoin_10-07-2022": null,
+  "bitcoin_10-07-2023": null,
+  "bitcoin_10-07-2025": {
+    "price": 111327.53054245669,
+    "market_cap": 2215210888568.426,
+    "total_volume": 37078460440.66385
+  },
+  "bitcoin_10-08-2023": null,
+  "bitcoin_10-08-2024": null,
+  "bitcoin_10-09-2023": null,
+  "bitcoin_10-09-2024": null,
+  "bitcoin_10-09-2025": {
+    "price": 111547.43956434788,
+    "market_cap": 2222026777598.0474,
+    "total_volume": 45338021458.38368
+  },
+  "bitcoin_10-10-2022": null,
+  "bitcoin_10-10-2023": null,
+  "bitcoin_10-10-2024": null,
+  "bitcoin_10-10-2025": {
+    "price": 121698.03066778315,
+    "market_cap": 2423288659157.484,
+    "total_volume": 72097306668.91356
+  },
+  "bitcoin_10-11-2022": null,
+  "bitcoin_10-11-2024": null,
+  "bitcoin_10-12-2024": null,
+  "bitcoin_10-12-2025": {
+    "price": 92723.21372069631,
+    "market_cap": 1852116289106.247,
+    "total_volume": 54575121853.64529
+  },
+  "bitcoin_11-01-2024": null,
+  "bitcoin_11-02-2022": null,
+  "bitcoin_11-02-2026": {
+    "price": 68779.90981269129,
+    "market_cap": 1374149240710.2896,
+    "total_volume": 43014177103.90287
+  },
+  "bitcoin_11-03-2024": null,
+  "bitcoin_11-03-2026": {
+    "price": 69883.00887579883,
+    "market_cap": 1397516391202.649,
+    "total_volume": 57031319359.51854
+  },
+  "bitcoin_11-04-2023": null,
+  "bitcoin_11-04-2024": null,
+  "bitcoin_11-05-2023": null,
+  "bitcoin_11-05-2025": {
+    "price": 104630.8792994166,
+    "market_cap": 2077132539531.3464,
+    "total_volume": 21558992540.042442
+  },
+  "bitcoin_11-06-2023": null,
+  "bitcoin_11-06-2024": null,
+  "bitcoin_11-06-2025": {
+    "price": 110212.73252109604,
+    "market_cap": 2189350055406.3333,
+    "total_volume": 36303839182.734825
+  },
+  "bitcoin_11-07-2023": null,
+  "bitcoin_11-08-2022": null,
+  "bitcoin_11-08-2023": null,
+  "bitcoin_11-08-2025": {
+    "price": 119266.92516880555,
+    "market_cap": 2374097296837.8896,
+    "total_volume": 37157754754.85189
+  },
+  "bitcoin_11-09-2023": null,
+  "bitcoin_11-10-2022": null,
+  "bitcoin_11-10-2023": null,
+  "bitcoin_11-11-2023": null,
+  "bitcoin_11-11-2024": null,
+  "bitcoin_11-11-2025": {
+    "price": 105909.07272321742,
+    "market_cap": 2112747067951.9028,
+    "total_volume": 67546556819.52642
+  },
+  "bitcoin_11-12-2024": null,
+  "bitcoin_12-01-2022": null,
+  "bitcoin_12-01-2023": null,
+  "bitcoin_12-01-2024": null,
+  "bitcoin_12-01-2025": null,
+  "bitcoin_12-02-2024": null,
+  "bitcoin_12-02-2026": {
+    "price": 66937.58141157958,
+    "market_cap": 1337566230010.1792,
+    "total_volume": 54917156057.4172
+  },
+  "bitcoin_12-03-2023": null,
+  "bitcoin_12-03-2026": {
+    "price": 70226.818790692,
+    "market_cap": 1405229147518.9683,
+    "total_volume": 48188681300.73879
+  },
+  "bitcoin_12-04-2024": null,
+  "bitcoin_12-04-2025": {
+    "price": 83439.28818043756,
+    "market_cap": 1655868880454.1702,
+    "total_volume": 39813566443.76779
+  },
+  "bitcoin_12-05-2023": null,
+  "bitcoin_12-05-2024": null,
+  "bitcoin_12-06-2023": null,
+  "bitcoin_12-07-2023": null,
+  "bitcoin_12-08-2022": null,
+  "bitcoin_12-08-2023": null,
+  "bitcoin_12-08-2024": null,
+  "bitcoin_12-08-2025": {
+    "price": 118773.79960860992,
+    "market_cap": 2364060561672.9995,
+    "total_volume": 61739781527.95854
+  },
+  "bitcoin_12-09-2021": null,
+  "bitcoin_12-10-2022": null,
+  "bitcoin_12-11-2021": null,
+  "bitcoin_12-11-2022": null,
+  "bitcoin_12-11-2024": null,
+  "bitcoin_12-12-2021": null,
+  "bitcoin_12-12-2023": null,
+  "bitcoin_12-12-2024": null,
+  "bitcoin_13-01-2023": null,
+  "bitcoin_13-02-2022": null,
+  "bitcoin_13-02-2026": {
+    "price": 66184.57765470445,
+    "market_cap": 1322855090692.983,
+    "total_volume": 47600564765.981926
+  },
+  "bitcoin_13-03-2022": null,
+  "bitcoin_13-03-2023": null,
+  "bitcoin_13-04-2023": null,
+  "bitcoin_13-04-2025": {
+    "price": 85305.09728392666,
+    "market_cap": 1693600655371.0874,
+    "total_volume": 22428929482.069122
+  },
+  "bitcoin_13-05-2024": null,
+  "bitcoin_13-05-2025": {
+    "price": 102876.8304286011,
+    "market_cap": 2044347271866.1707,
+    "total_volume": 43090605819.36596
+  },
+  "bitcoin_13-06-2025": {
+    "price": 105979.22902375912,
+    "market_cap": 2107911943768.2988,
+    "total_volume": 35865159511.38857
+  },
+  "bitcoin_13-07-2023": null,
+  "bitcoin_13-07-2024": null,
+  "bitcoin_13-08-2022": null,
+  "bitcoin_13-08-2023": null,
+  "bitcoin_13-08-2024": null,
+  "bitcoin_13-08-2025": {
+    "price": 120202.53485503166,
+    "market_cap": 2392854421745.6157,
+    "total_volume": 46941089789.57991
+  },
+  "bitcoin_13-09-2024": null,
+  "bitcoin_13-09-2025": {
+    "price": 116160.14344594491,
+    "market_cap": 2314347371939.946,
+    "total_volume": 51192951485.864395
+  },
+  "bitcoin_13-10-2023": null,
+  "bitcoin_13-10-2025": {
+    "price": 115189.5714637257,
+    "market_cap": 2294724465036.9785,
+    "total_volume": 93857100744.12454
+  },
+  "bitcoin_13-11-2021": null,
+  "bitcoin_13-11-2024": null,
+  "bitcoin_13-11-2025": {
+    "price": 101521.70859453593,
+    "market_cap": 2025837265459.7573,
+    "total_volume": 63332414142.58827
+  },
+  "bitcoin_13-12-2023": null,
+  "bitcoin_13-12-2024": null,
+  "bitcoin_14-01-2024": null,
+  "bitcoin_14-01-2025": null,
+  "bitcoin_14-01-2026": {
+    "price": 95260.4422971001,
+    "market_cap": 1902289955573.257,
+    "total_volume": 66844465446.74208
+  },
+  "bitcoin_14-02-2022": null,
+  "bitcoin_14-02-2024": null,
+  "bitcoin_14-02-2025": null,
+  "bitcoin_14-02-2026": {
+    "price": 68838.87490510389,
+    "market_cap": 1376029371467.4585,
+    "total_volume": 43307347077.16525
+  },
+  "bitcoin_14-03-2024": null,
+  "bitcoin_14-04-2023": null,
+  "bitcoin_14-04-2024": null,
+  "bitcoin_14-05-2023": null,
+  "bitcoin_14-05-2024": null,
+  "bitcoin_14-06-2023": null,
+  "bitcoin_14-06-2025": {
+    "price": 106045.56440819203,
+    "market_cap": 2107973087547.7922,
+    "total_volume": 49471015505.74361
+  },
+  "bitcoin_14-07-2022": null,
+  "bitcoin_14-07-2023": null,
+  "bitcoin_14-08-2023": null,
+  "bitcoin_14-08-2025": {
+    "price": 123560.99363577305,
+    "market_cap": 2458895200752.567,
+    "total_volume": 61818118105.53991
+  },
+  "bitcoin_14-09-2023": null,
+  "bitcoin_14-11-2022": null,
+  "bitcoin_14-11-2023": null,
+  "bitcoin_14-11-2024": null,
+  "bitcoin_14-12-2024": null,
+  "bitcoin_14-12-2025": {
+    "price": 90257.4292885891,
+    "market_cap": 1801496999571.6902,
+    "total_volume": 35222775785.402145
+  },
+  "bitcoin_15-01-2022": null,
+  "bitcoin_15-01-2023": null,
+  "bitcoin_15-01-2024": null,
+  "bitcoin_15-01-2025": null,
+  "bitcoin_15-01-2026": {
+    "price": 97007.78078881276,
+    "market_cap": 1938292963237.8118,
+    "total_volume": 68433627980.993996
+  },
+  "bitcoin_15-02-2022": null,
+  "bitcoin_15-02-2024": null,
+  "bitcoin_15-03-2023": null,
+  "bitcoin_15-03-2025": {
+    "price": 83971.70916064628,
+    "market_cap": 1665725559905.8198,
+    "total_volume": 28571483950.074646
+  },
+  "bitcoin_15-04-2023": null,
+  "bitcoin_15-04-2024": null,
+  "bitcoin_15-05-2023": null,
+  "bitcoin_15-05-2024": null,
+  "bitcoin_15-06-2022": null,
+  "bitcoin_15-06-2024": null,
+  "bitcoin_15-06-2025": {
+    "price": 105482.90611628917,
+    "market_cap": 2097486541223.27,
+    "total_volume": 17916412455.866283
+  },
+  "bitcoin_15-07-2022": null,
+  "bitcoin_15-07-2023": null,
+  "bitcoin_15-07-2025": {
+    "price": 119833.67446712355,
+    "market_cap": 2383825813673.847,
+    "total_volume": 68915956378.80447
+  },
+  "bitcoin_15-08-2024": null,
+  "bitcoin_15-08-2025": {
+    "price": 118405.59579823953,
+    "market_cap": 2360043737045.272,
+    "total_volume": 73822008367.99681
+  },
+  "bitcoin_15-09-2021": null,
+  "bitcoin_15-10-2022": null,
+  "bitcoin_15-10-2023": null,
+  "bitcoin_15-11-2021": null,
+  "bitcoin_15-12-2021": null,
+  "bitcoin_15-12-2023": null,
+  "bitcoin_15-12-2024": null,
+  "bitcoin_15-12-2025": {
+    "price": 88230.77409367911,
+    "market_cap": 1761380944797.1238,
+    "total_volume": 33808538697.042442
+  },
+  "bitcoin_16-01-2024": null,
+  "bitcoin_16-01-2025": null,
+  "bitcoin_16-02-2026": {
+    "price": 68716.58337486399,
+    "market_cap": 1373546624939.8215,
+    "total_volume": 44139541277.476685
+  },
+  "bitcoin_16-03-2022": null,
+  "bitcoin_16-03-2024": null,
+  "bitcoin_16-04-2025": {
+    "price": 83656.49248858042,
+    "market_cap": 1660749023283.0562,
+    "total_volume": 25084671427.622566
+  },
+  "bitcoin_16-05-2023": null,
+  "bitcoin_16-05-2024": null,
+  "bitcoin_16-06-2023": null,
+  "bitcoin_16-07-2022": null,
+  "bitcoin_16-07-2024": null,
+  "bitcoin_16-07-2025": {
+    "price": 117678.19493404306,
+    "market_cap": 2341223394839.9204,
+    "total_volume": 80299520980.2335
+  },
+  "bitcoin_16-08-2023": null,
+  "bitcoin_16-08-2025": {
+    "price": 117339.79190213277,
+    "market_cap": 2335290383260.173,
+    "total_volume": 44268714220.021
+  },
+  "bitcoin_16-09-2022": null,
+  "bitcoin_16-09-2023": null,
+  "bitcoin_16-09-2024": null,
+  "bitcoin_16-10-2022": null,
+  "bitcoin_16-10-2023": null,
+  "bitcoin_16-11-2022": null,
+  "bitcoin_16-11-2024": null,
+  "bitcoin_16-12-2021": null,
+  "bitcoin_17-01-2024": null,
+  "bitcoin_17-01-2025": null,
+  "bitcoin_17-01-2026": {
+    "price": 95516.07771987123,
+    "market_cap": 1907673016263.0132,
+    "total_volume": 37208122951.606445
+  },
+  "bitcoin_17-02-2026": {
+    "price": 68907.78353606178,
+    "market_cap": 1377439978226.675,
+    "total_volume": 36789211960.55089
+  },
+  "bitcoin_17-03-2022": null,
+  "bitcoin_17-03-2024": null,
+  "bitcoin_17-03-2025": {
+    "price": 82610.61750343916,
+    "market_cap": 1638672153483.722,
+    "total_volume": 21638031633.118767
+  },
+  "bitcoin_17-04-2023": null,
+  "bitcoin_17-05-2022": null,
+  "bitcoin_17-05-2024": null,
+  "bitcoin_17-05-2025": {
+    "price": 103556.03493982446,
+    "market_cap": 2057725640290.0767,
+    "total_volume": 25887953182.14765
+  },
+  "bitcoin_17-06-2022": null,
+  "bitcoin_17-06-2025": {
+    "price": 106951.2720181497,
+    "market_cap": 2127895470544.7178,
+    "total_volume": 32095957011.724205
+  },
+  "bitcoin_17-07-2023": null,
+  "bitcoin_17-07-2024": null,
+  "bitcoin_17-07-2025": {
+    "price": 118748.1627367753,
+    "market_cap": 2363194640209.576,
+    "total_volume": 50374263848.76278
+  },
+  "bitcoin_17-08-2023": null,
+  "bitcoin_17-09-2025": {
+    "price": 116762.8496864193,
+    "market_cap": 2325326932460.9644,
+    "total_volume": 39964451595.099724
+  },
+  "bitcoin_17-10-2023": null,
+  "bitcoin_17-10-2024": null,
+  "bitcoin_17-10-2025": {
+    "price": 108076.72862033188,
+    "market_cap": 2154964541836.455,
+    "total_volume": 84773160808.27399
+  },
+  "bitcoin_17-11-2021": null,
+  "bitcoin_17-11-2023": null,
+  "bitcoin_17-12-2023": null,
+  "bitcoin_18-01-2023": null,
+  "bitcoin_18-01-2024": null,
+  "bitcoin_18-02-2024": null,
+  "bitcoin_18-02-2026": {
+    "price": 67489.45540267964,
+    "market_cap": 1349284955301.9707,
+    "total_volume": 38338996657.38213
+  },
+  "bitcoin_18-03-2023": null,
+  "bitcoin_18-03-2024": null,
+  "bitcoin_18-04-2022": null,
+  "bitcoin_18-04-2023": null,
+  "bitcoin_18-04-2025": {
+    "price": 84930.90857600998,
+    "market_cap": 1686226810049.1836,
+    "total_volume": 19323821375.14309
+  },
+  "bitcoin_18-06-2022": null,
+  "bitcoin_18-06-2025": {
+    "price": 104683.42479835715,
+    "market_cap": 2080968120976.949,
+    "total_volume": 38603212010.889435
+  },
+  "bitcoin_18-07-2023": null,
+  "bitcoin_18-07-2024": null,
+  "bitcoin_18-08-2022": null,
+  "bitcoin_18-09-2024": null,
+  "bitcoin_18-09-2025": {
+    "price": 116455.94648225319,
+    "market_cap": 2321583680138.891,
+    "total_volume": 54740952295.37868
+  },
+  "bitcoin_18-10-2022": null,
+  "bitcoin_18-10-2024": null,
+  "bitcoin_18-10-2025": {
+    "price": 106443.61194984635,
+    "market_cap": 2123017949517.1426,
+    "total_volume": 94325236794.78163
+  },
+  "bitcoin_18-11-2021": null,
+  "bitcoin_18-11-2022": null,
+  "bitcoin_18-11-2024": null,
+  "bitcoin_18-12-2022": null,
+  "bitcoin_18-12-2025": {
+    "price": 86064.94716216,
+    "market_cap": 1718491930388.8372,
+    "total_volume": 48886793507.656334
+  },
+  "bitcoin_19-01-2024": null,
+  "bitcoin_19-02-2022": null,
+  "bitcoin_19-02-2024": null,
+  "bitcoin_19-02-2025": null,
+  "bitcoin_19-03-2022": null,
+  "bitcoin_19-03-2025": {
+    "price": 82780.03048688271,
+    "market_cap": 1642578274105.806,
+    "total_volume": 24557570268.85276
+  },
+  "bitcoin_19-04-2022": null,
+  "bitcoin_19-04-2023": null,
+  "bitcoin_19-04-2024": null,
+  "bitcoin_19-04-2025": {
+    "price": 84433.75017215389,
+    "market_cap": 1676373197914.5117,
+    "total_volume": 9550691272.782005
+  },
+  "bitcoin_19-06-2023": null,
+  "bitcoin_19-07-2022": null,
+  "bitcoin_19-07-2023": null,
+  "bitcoin_19-08-2022": null,
+  "bitcoin_19-08-2025": {
+    "price": 116256.41276740946,
+    "market_cap": 2313556987528.4634,
+    "total_volume": 47337926940.98573
+  },
+  "bitcoin_19-09-2022": null,
+  "bitcoin_19-09-2023": null,
+  "bitcoin_19-11-2021": null,
+  "bitcoin_19-11-2022": null,
+  "bitcoin_19-11-2024": null,
+  "bitcoin_19-12-2021": null,
+  "bitcoin_19-12-2023": null,
+  "bitcoin_19-12-2024": null,
+  "bitcoin_20-01-2023": null,
+  "bitcoin_20-01-2024": null,
+  "bitcoin_20-01-2026": {
+    "price": 92558.46334372147,
+    "market_cap": 1849232162887.1968,
+    "total_volume": 43338958368.50777
+  },
+  "bitcoin_20-02-2024": null,
+  "bitcoin_20-03-2023": null,
+  "bitcoin_20-03-2024": null,
+  "bitcoin_20-04-2024": null,
+  "bitcoin_20-05-2023": null,
+  "bitcoin_20-05-2024": null,
+  "bitcoin_20-05-2025": {
+    "price": 105629.41580436694,
+    "market_cap": 2098485415895.0496,
+    "total_volume": 43339734153.75087
+  },
+  "bitcoin_20-06-2023": null,
+  "bitcoin_20-06-2025": {
+    "price": 104690.65002458123,
+    "market_cap": 2081355279873.408,
+    "total_volume": 18063282658.152298
+  },
+  "bitcoin_20-07-2024": null,
+  "bitcoin_20-07-2025": {
+    "price": 117901.62655900871,
+    "market_cap": 2345398337785.541,
+    "total_volume": 23934511126.349533
+  },
+  "bitcoin_20-08-2022": null,
+  "bitcoin_20-08-2024": null,
+  "bitcoin_20-08-2025": {
+    "price": 112778.34483555844,
+    "market_cap": 2245419916215.7417,
+    "total_volume": 46156885037.403885
+  },
+  "bitcoin_20-09-2024": null,
+  "bitcoin_20-10-2022": null,
+  "bitcoin_20-11-2021": null,
+  "bitcoin_20-11-2022": null,
+  "bitcoin_20-12-2023": null,
+  "bitcoin_21-01-2025": null,
+  "bitcoin_21-02-2024": null,
+  "bitcoin_21-02-2025": null,
+  "bitcoin_21-03-2022": null,
+  "bitcoin_21-03-2024": null,
+  "bitcoin_21-03-2025": {
+    "price": 84270.84358966233,
+    "market_cap": 1672550706502.8184,
+    "total_volume": 27579127651.06656
+  },
+  "bitcoin_21-04-2023": null,
+  "bitcoin_21-05-2023": null,
+  "bitcoin_21-05-2024": null,
+  "bitcoin_21-05-2025": {
+    "price": 106786.71995834043,
+    "market_cap": 2121778617273.821,
+    "total_volume": 36393687094.25122
+  },
+  "bitcoin_21-06-2022": null,
+  "bitcoin_21-06-2023": null,
+  "bitcoin_21-07-2024": null,
+  "bitcoin_21-08-2023": null,
+  "bitcoin_21-08-2025": {
+    "price": 114252.39755195397,
+    "market_cap": 2274471285844.184,
+    "total_volume": 42166369117.006935
+  },
+  "bitcoin_21-09-2022": null,
+  "bitcoin_21-09-2023": null,
+  "bitcoin_21-09-2024": null,
+  "bitcoin_21-09-2025": {
+    "price": 115715.51536781774,
+    "market_cap": 2305371926506.302,
+    "total_volume": 18774953731.290394
+  },
+  "bitcoin_21-10-2023": null,
+  "bitcoin_21-11-2022": null,
+  "bitcoin_21-11-2023": null,
+  "bitcoin_21-11-2024": null,
+  "bitcoin_21-12-2025": {
+    "price": 88347.94310567998,
+    "market_cap": 1762805314679.9844,
+    "total_volume": 17103607834.780054
+  },
+  "bitcoin_22-01-2024": null,
+  "bitcoin_22-01-2026": {
+    "price": 89354.34377512129,
+    "market_cap": 1785123532735.0352,
+    "total_volume": 62357735672.95213
+  },
+  "bitcoin_22-02-2023": null,
+  "bitcoin_22-02-2024": null,
+  "bitcoin_22-02-2026": {
+    "price": 67977.90904199042,
+    "market_cap": 1359065859647.3735,
+    "total_volume": 20679811587.418015
+  },
+  "bitcoin_22-03-2022": null,
+  "bitcoin_22-03-2023": null,
+  "bitcoin_22-04-2024": null,
+  "bitcoin_22-04-2025": {
+    "price": 87452.04699068287,
+    "market_cap": 1735703747771.06,
+    "total_volume": 40070025414.28289
+  },
+  "bitcoin_22-05-2023": null,
+  "bitcoin_22-05-2025": {
+    "price": 109665.86371625263,
+    "market_cap": 2178838967665.505,
+    "total_volume": 60722883113.84
+  },
+  "bitcoin_22-06-2023": null,
+  "bitcoin_22-06-2025": {
+    "price": 101532.5683847329,
+    "market_cap": 2017415966695.5278,
+    "total_volume": 21644463198.719532
+  },
+  "bitcoin_22-07-2023": null,
+  "bitcoin_22-07-2024": null,
+  "bitcoin_22-08-2022": null,
+  "bitcoin_22-08-2023": null,
+  "bitcoin_22-08-2024": null,
+  "bitcoin_22-08-2025": {
+    "price": 112414.39987336512,
+    "market_cap": 2238121481749.57,
+    "total_volume": 32048202090.65466
+  },
+  "bitcoin_22-09-2021": null,
+  "bitcoin_22-09-2023": null,
+  "bitcoin_22-10-2023": null,
+  "bitcoin_22-10-2024": null,
+  "bitcoin_22-11-2021": null,
+  "bitcoin_22-11-2022": null,
+  "bitcoin_22-11-2024": null,
+  "bitcoin_22-12-2021": null,
+  "bitcoin_22-12-2022": null,
+  "bitcoin_22-12-2023": null,
+  "bitcoin_22-12-2024": null,
+  "bitcoin_23-01-2024": null,
+  "bitcoin_23-02-2022": null,
+  "bitcoin_23-03-2022": null,
+  "bitcoin_23-03-2023": null,
+  "bitcoin_23-03-2024": null,
+  "bitcoin_23-04-2023": null,
+  "bitcoin_23-04-2024": null,
+  "bitcoin_23-05-2023": null,
+  "bitcoin_23-05-2024": null,
+  "bitcoin_23-06-2022": null,
+  "bitcoin_23-06-2025": {
+    "price": 100852.58264648831,
+    "market_cap": 2005179769771.7349,
+    "total_volume": 51287142390.02526
+  },
+  "bitcoin_23-07-2022": null,
+  "bitcoin_23-07-2023": null,
+  "bitcoin_23-07-2024": null,
+  "bitcoin_23-07-2025": {
+    "price": 119955.79570607653,
+    "market_cap": 2387516761560.4927,
+    "total_volume": 58939000420.94166
+  },
+  "bitcoin_23-08-2023": null,
+  "bitcoin_23-08-2025": {
+    "price": 116834.24948202295,
+    "market_cap": 2326174803320.612,
+    "total_volume": 50878158870.82928
+  },
+  "bitcoin_23-09-2024": null,
+  "bitcoin_23-10-2023": null,
+  "bitcoin_23-11-2023": null,
+  "bitcoin_23-11-2024": null,
+  "bitcoin_23-12-2021": null,
+  "bitcoin_23-12-2022": null,
+  "bitcoin_23-12-2024": null,
+  "bitcoin_24-01-2025": null,
+  "bitcoin_24-01-2026": {
+    "price": 89412.39849953113,
+    "market_cap": 1786292506432.339,
+    "total_volume": 43393369570.58639
+  },
+  "bitcoin_24-03-2022": null,
+  "bitcoin_24-03-2024": null,
+  "bitcoin_24-03-2025": {
+    "price": 85787.70914901773,
+    "market_cap": 1702009594329.4495,
+    "total_volume": 12617587530.619724
+  },
+  "bitcoin_24-04-2022": null,
+  "bitcoin_24-04-2023": null,
+  "bitcoin_24-04-2024": null,
+  "bitcoin_24-05-2023": null,
+  "bitcoin_24-06-2022": null,
+  "bitcoin_24-07-2022": null,
+  "bitcoin_24-07-2023": null,
+  "bitcoin_24-08-2023": null,
+  "bitcoin_24-08-2024": null,
+  "bitcoin_24-09-2022": null,
+  "bitcoin_24-09-2024": null,
+  "bitcoin_24-09-2025": {
+    "price": 112022.16587861195,
+    "market_cap": 2232693472656.6514,
+    "total_volume": 46154878824.043465
+  },
+  "bitcoin_24-10-2021": null,
+  "bitcoin_24-10-2025": {
+    "price": 110048.51827291629,
+    "market_cap": 2193901841033.9053,
+    "total_volume": 56192643013.57058
+  },
+  "bitcoin_24-11-2021": null,
+  "bitcoin_24-11-2025": {
+    "price": 86783.84766839583,
+    "market_cap": 1732233225777.4016,
+    "total_volume": 60446592409.29218
+  },
+  "bitcoin_24-12-2024": null,
+  "bitcoin_25-01-2023": null,
+  "bitcoin_25-01-2024": null,
+  "bitcoin_25-01-2025": null,
+  "bitcoin_25-01-2026": {
+    "price": 89170.87364531498,
+    "market_cap": 1781979789713.3386,
+    "total_volume": 16537403154.850498
+  },
+  "bitcoin_25-02-2026": {
+    "price": 64074.11098528222,
+    "market_cap": 1281148417170.2803,
+    "total_volume": 44864477921.16241
+  },
+  "bitcoin_25-03-2023": null,
+  "bitcoin_25-03-2025": {
+    "price": 87327.72969669085,
+    "market_cap": 1732715331970.134,
+    "total_volume": 27270889835.1835
+  },
+  "bitcoin_25-04-2022": null,
+  "bitcoin_25-04-2023": null,
+  "bitcoin_25-04-2024": null,
+  "bitcoin_25-04-2025": {
+    "price": 93872.81422867288,
+    "market_cap": 1864298110563.3408,
+    "total_volume": 30031246761.093452
+  },
+  "bitcoin_25-05-2023": null,
+  "bitcoin_25-05-2025": {
+    "price": 107831.36374380375,
+    "market_cap": 2142540077685.2197,
+    "total_volume": 27128230116.517162
+  },
+  "bitcoin_25-06-2022": null,
+  "bitcoin_25-06-2023": null,
+  "bitcoin_25-06-2024": null,
+  "bitcoin_25-06-2025": {
+    "price": 105976.06929808448,
+    "market_cap": 2107110352429.8032,
+    "total_volume": 31704641076.941063
+  },
+  "bitcoin_25-07-2023": null,
+  "bitcoin_25-07-2025": {
+    "price": 118354.43517438594,
+    "market_cap": 2354764508342.9937,
+    "total_volume": 51940414419.3327
+  },
+  "bitcoin_25-08-2023": null,
+  "bitcoin_25-08-2024": null,
+  "bitcoin_25-09-2022": null,
+  "bitcoin_25-09-2024": null
+}
